@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/davecgh/go-spew v1.1.1
-	github.com/go-courier/x v0.0.4
+	github.com/go-courier/x v0.0.5
 	github.com/onsi/gomega v1.16.0
 	github.com/pkg/errors v0.9.1
 	golang.org/x/tools v0.1.5
