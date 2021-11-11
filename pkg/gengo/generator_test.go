@@ -2,19 +2,19 @@ package gengo_test
 
 import (
 	"context"
-
 	"testing"
 
-	"github.com/go-courier/gengo/pkg/gengo"
+	"github.com/octohelm/gengo/pkg/gengo"
 
-	_ "github.com/go-courier/gengo/testdata/examples/defaulter-gen/generators"
+	_ "github.com/octohelm/gengo/devpkg/deepcopygen"
+	_ "github.com/octohelm/gengo/devpkg/defaultergen"
 )
 
 func TestPkgGenerator(t *testing.T) {
 	c, err := gengo.NewContext(&gengo.GeneratorArgs{
 		Entrypoint: []string{
 			"../../testdata/a/b",
-			"github.com/go-courier/gengo/testdata/a/c",
+			"github.com/octohelm/gengo/testdata/a/c",
 		},
 		OutputFileBaseName: "zz_generated",
 	})

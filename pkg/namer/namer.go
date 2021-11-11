@@ -1,7 +1,7 @@
 package namer
 
 import (
-	gengotypes "github.com/go-courier/gengo/pkg/types"
+	gengotypes "github.com/octohelm/gengo/pkg/types"
 )
 
 type Namer interface {

@@ -22,6 +22,10 @@ type Generator interface {
 	GenerateType(*Context, *types.Named) error
 }
 
+type GeneratorTypeFilter interface {
+	FilterType(*Context, *types.Named) bool
+}
+
 type GeneratorCreator interface {
 	Init(*Context, Generator, ...GeneratorPostInit) (Generator, error)
 }

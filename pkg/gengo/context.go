@@ -2,11 +2,14 @@ package gengo
 
 import (
 	"context"
+	"fmt"
 	"go/types"
 	"sort"
 	"strings"
 
-	gengotypes "github.com/go-courier/gengo/pkg/types"
+	"github.com/go-courier/logr"
+
+	gengotypes "github.com/octohelm/gengo/pkg/types"
 	"github.com/pkg/errors"
 )
 
@@ -118,8 +121,18 @@ func (c *Context) doGenerate(ctx context.Context, g Generator) error {
 			mergedTags := merge(c.Tags, tags)
 
 			if isGeneratorEnabled(g, mergedTags) {
-				if err := g.GenerateType(c, named); err != nil {
-					return err
+				shouldProcess := true
+
+				if typeFilter, ok := g.(GeneratorTypeFilter); ok {
+					shouldProcess = typeFilter.FilterType(c, named)
+
+				}
+
+				if shouldProcess {
+					if err := g.GenerateType(c, named); err != nil {
+						return err
+					}
+					logr.FromContext(ctx).Debug(fmt.Sprintf("`%s` gen found for  %s.", g.Name(), named))
 				}
 			}
 		}

@@ -1,20 +1,24 @@
-module github.com/go-courier/gengo
+module github.com/octohelm/gengo
 
-go 1.17
+go 1.18
 
 require (
 	github.com/davecgh/go-spew v1.1.1
-	github.com/go-courier/x v0.0.11
-	github.com/onsi/gomega v1.16.0
+	github.com/go-courier/logr v0.0.2
+	github.com/octohelm/x v0.0.0-20220721104447-6248adcd9f3f
+	github.com/onsi/gomega v1.20.0
 	github.com/pkg/errors v0.9.1
-	golang.org/x/tools v0.1.7
+	golang.org/x/tools v0.1.11
 )
 
 require (
-	golang.org/x/mod v0.5.1 // indirect
-	golang.org/x/net v0.0.0-20210805182204-aaa1db679c0d // indirect
-	golang.org/x/sys v0.0.0-20211007075335-d3039528d8ac // indirect
-	golang.org/x/text v0.3.6 // indirect
-	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
+	github.com/google/go-cmp v0.5.8 // indirect
+	github.com/kr/text v0.2.0 // indirect
+	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
+	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
+	golang.org/x/net v0.0.0-20220708220712-1185a9018129 // indirect
+	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect
+	golang.org/x/text v0.3.7 // indirect
+	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

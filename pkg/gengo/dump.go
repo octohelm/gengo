@@ -9,10 +9,10 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/go-courier/gengo/pkg/namer"
-	gengotypes "github.com/go-courier/gengo/pkg/types"
-	reflectx "github.com/go-courier/x/reflect"
-	typesutil "github.com/go-courier/x/types"
+	"github.com/octohelm/gengo/pkg/namer"
+	gengotypes "github.com/octohelm/gengo/pkg/types"
+	reflectx "github.com/octohelm/x/reflect"
+	typesutil "github.com/octohelm/x/types"
 )
 
 func NewDumper(rawNamer namer.Namer) *Dumper {
@@ -83,6 +83,7 @@ func (d *Dumper) TypeLit(tpe typesutil.Type) string {
 type ValueLitOpt struct {
 	SubValue    bool
 	OnInterface func(v interface{}) string
+	OnNamedType func(v interface{}) (string, bool)
 }
 
 type ValueLitOptFn func(o *ValueLitOpt)
@@ -90,6 +91,12 @@ type ValueLitOptFn func(o *ValueLitOpt)
 func OnInterface(onUnknown func(v interface{}) string) ValueLitOptFn {
 	return func(o *ValueLitOpt) {
 		o.OnInterface = onUnknown
+	}
+}
+
+func OnNamedType(onNamedType func(v interface{}) (string, bool)) ValueLitOptFn {
+	return func(o *ValueLitOpt) {
+		o.OnNamedType = onNamedType
 	}
 }
 
@@ -135,6 +142,12 @@ func (d *Dumper) ValueLit(in interface{}, optFns ...ValueLitOptFn) string {
 	}
 
 	tpe := rv.Type()
+
+	if tpe.PkgPath() != "" && o.OnNamedType != nil {
+		if s, ok := o.OnNamedType(rv.Interface()); ok {
+			return s
+		}
+	}
 
 	switch tpe.Kind() {
 	case reflect.Ptr:

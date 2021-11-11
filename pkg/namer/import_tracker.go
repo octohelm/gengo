@@ -4,7 +4,7 @@ import (
 	"go/token"
 	"strings"
 
-	gengotypes "github.com/go-courier/gengo/pkg/types"
+	gengotypes "github.com/octohelm/gengo/pkg/types"
 )
 
 type ImportTracker interface {

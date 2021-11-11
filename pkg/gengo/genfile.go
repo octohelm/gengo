@@ -6,14 +6,15 @@ import (
 	"go/parser"
 	"go/scanner"
 	"go/token"
-	"golang.org/x/tools/imports"
 	"io"
 	"os"
 	"path"
 	"sort"
 	"strings"
 
-	"github.com/go-courier/gengo/pkg/namer"
+	"golang.org/x/tools/imports"
+
+	"github.com/octohelm/gengo/pkg/namer"
 )
 
 type genfiles map[string]*genfile
@@ -99,7 +100,6 @@ func (ff *genfile) WriteToFile(c *Context) error {
 	data := ff.src.Bytes()
 
 	lines := bytes.Split(data, []byte("\n"))
-
 
 	if _, err := parser.ParseFile(token.NewFileSet(), filename, data, parser.AllErrors); err != nil {
 		if sl, ok := err.(scanner.ErrorList); ok {

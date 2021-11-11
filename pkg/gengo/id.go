@@ -4,7 +4,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/go-courier/gengo/pkg/camelcase"
+	"github.com/octohelm/gengo/pkg/camelcase"
 )
 
 func UpperSnakeCase(s string) string {

@@ -1,9 +1,9 @@
-package generators
+package defaultergen
 
 import (
 	"go/types"
 
-	"github.com/go-courier/gengo/pkg/gengo"
+	"github.com/octohelm/gengo/pkg/gengo"
 )
 
 func init() {

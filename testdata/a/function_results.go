@@ -5,7 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/go-courier/gengo/testdata/a/b"
+	"github.com/octohelm/gengo/testdata/a/b"
 )
 
 func Example() {

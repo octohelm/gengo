@@ -3,14 +3,15 @@ package gengo
 import (
 	"bytes"
 	"fmt"
-	gengotypes "github.com/go-courier/gengo/pkg/types"
 	"io"
 	"runtime"
 	"strconv"
 	"strings"
 	"text/template"
 
-	"github.com/go-courier/gengo/pkg/namer"
+	gengotypes "github.com/octohelm/gengo/pkg/types"
+
+	"github.com/octohelm/gengo/pkg/namer"
 )
 
 func Snippet(format string, args ...Args) func(s SnippetWriter) {

@@ -9,12 +9,12 @@ import (
 
 func TestLoad(t *testing.T) {
 	u, _, err := Load([]string{
-		"github.com/go-courier/gengo/testdata/a",
+		"github.com/octohelm/gengo/testdata/a",
 	})
 
 	gomega.NewWithT(t).Expect(err).To(gomega.BeNil())
 
-	p := u.Package("github.com/go-courier/gengo/testdata/a")
+	p := u.Package("github.com/octohelm/gengo/testdata/a")
 
 	t.Run("Comments", func(t *testing.T) {
 		tpe := p.Type("Struct")
@@ -50,13 +50,13 @@ func TestLoad(t *testing.T) {
 		funcResults := map[string]string{
 			"FuncSingleReturn":              `(2)`,
 			"FuncSelectExprReturn":          `(string)`,
-			"FuncWillCall":                  `(2, github.com/go-courier/gengo/testdata/a.String)`,
-			"FuncReturnWithCallDirectly":    `(2, github.com/go-courier/gengo/testdata/a.String)`,
-			"FuncWithNamedReturn":           `(2, github.com/go-courier/gengo/testdata/a.String)`,
+			"FuncWillCall":                  `(2, github.com/octohelm/gengo/testdata/a.String)`,
+			"FuncReturnWithCallDirectly":    `(2, github.com/octohelm/gengo/testdata/a.String)`,
+			"FuncWithNamedReturn":           `(2, github.com/octohelm/gengo/testdata/a.String)`,
 			"FuncSingleNamedReturnByAssign": `("1", "2", *github.com/pkg/errors.fundamental)`,
 			"FunWithSwitch":                 `("a1" | "a2" | "a3", "b1" | "b2" | "b3")`,
 			"FuncWithIf":                    `("a0" | "a1" | string)`,
-			"FuncCallReturnAssign":          `(2, github.com/go-courier/gengo/testdata/a.String)`,
+			"FuncCallReturnAssign":          `(2, github.com/octohelm/gengo/testdata/a.String)`,
 			"FuncCallWithFuncLit":           `(1, "s")`,
 			"FuncWithImportedCall":          `(int)`,
 			"FuncCurryCall":                 `(int)`,

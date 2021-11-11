@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/go-courier/gengo/pkg/namer"
+	"github.com/octohelm/gengo/pkg/namer"
 	"github.com/onsi/gomega"
 )
 
