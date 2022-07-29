@@ -72,11 +72,16 @@ func (ff *genfile) WriteToFile(c Context, args *GeneratorArgs) error {
 	if _, err := parser.ParseFile(token.NewFileSet(), filename, data, parser.AllErrors); err != nil {
 		if sl, ok := err.(scanner.ErrorList); ok {
 			for i := range sl {
+				if i > 0 {
+					// only should first error
+					break
+				}
+
 				l := sl[i].Pos.Line
 
 				fmt.Println(sl[i].Pos)
 
-				for i := l - 3; i < l; i++ {
+				for i := l - 10; i < l; i++ {
 					if i > 0 {
 						fmt.Printf("%d\t%s\n", i+1, string(lines[i]))
 					}
@@ -88,6 +93,7 @@ func (ff *genfile) WriteToFile(c Context, args *GeneratorArgs) error {
 				}
 				fmt.Printf("\t%s↑\n", strings.Repeat(" ", col))
 				fmt.Println(sl[i].Msg)
+				fmt.Println()
 			}
 		}
 		return err

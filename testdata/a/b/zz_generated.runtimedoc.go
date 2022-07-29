@@ -4,6 +4,15 @@ DON'T EDIT THIS FILE
 */
 package b
 
+func runtimeDoc(v any, names ...string) ([]string, bool) {
+	if c, ok := v.(interface {
+		RuntimeDoc(names ...string) ([]string, bool)
+	}); ok {
+		return c.RuntimeDoc(names...)
+	}
+	return nil, false
+}
+
 func (B) RuntimeDoc(names ...string) ([]string, bool) {
 	return []string{
 		"B is a type for testing",
@@ -21,7 +30,7 @@ func (v Obj) RuntimeDoc(names ...string) ([]string, bool) {
 			return []string{}, true
 
 		}
-		if doc, ok := v.SubObj.RuntimeDoc(names...); ok {
+		if doc, ok := runtimeDoc(v.SubObj, names...); ok {
 			return doc, ok
 		}
 
@@ -36,6 +45,28 @@ func (v SubObj) RuntimeDoc(names ...string) ([]string, bool) {
 		case "Age":
 			return []string{
 				"Age",
+			}, true
+
+		}
+
+		return nil, false
+	}
+	return []string{}, true
+}
+
+func (v Third) RuntimeDoc(names ...string) ([]string, bool) {
+	if len(names) > 0 {
+		switch names[0] {
+		case "VCS":
+			return []string{}, true
+		case "Repo":
+			return []string{
+				"Repo is the repository URL, including scheme.",
+			}, true
+		case "Root":
+			return []string{
+				"Root is the import path corresponding to the root of the",
+				"repository.",
 			}, true
 
 		}

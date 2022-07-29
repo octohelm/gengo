@@ -26,11 +26,11 @@ func (*defaulterGen) New(c gengo.Context) gengo.Generator {
 
 func (g *defaulterGen) GenerateType(c gengo.Context, t *types.Named) error {
 	g.Do(`
-func(v *[[ .type | id ]]) SetDefault() {
+func(v *@Type) SetDefault() {
 	// TODO
 }
 `, gengo.Args{
-		"type": t.Obj(),
+		"Type": gengo.ID(t.Obj()),
 	})
 	return nil
 }

@@ -13,3 +13,6 @@ func (v *Obj) SetDefault() {
 func (v *SubObj) SetDefault() {
 
 }
+func (v *Third) SetDefault() {
+
+}

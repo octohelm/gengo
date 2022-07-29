@@ -4,7 +4,7 @@ import (
 	"go/types"
 	"testing"
 
-	"github.com/onsi/gomega"
+	testingx "github.com/octohelm/x/testing"
 )
 
 func TestLoad(t *testing.T) {
@@ -12,39 +12,49 @@ func TestLoad(t *testing.T) {
 		"github.com/octohelm/gengo/testdata/a",
 	})
 
-	gomega.NewWithT(t).Expect(err).To(gomega.BeNil())
+	testingx.Expect(t, err, testingx.Be[error](nil))
 
 	p := u.Package("github.com/octohelm/gengo/testdata/a")
 
 	t.Run("Comments", func(t *testing.T) {
-		tpe := p.Type("Struct")
-		_, lines := p.Doc(tpe.Pos())
-		gomega.NewWithT(t).Expect(lines).To(gomega.Equal([]string{
-			"Struct",
-		}))
+		t.Run("Const", func(t *testing.T) {
+			c := p.Constant("GENDER__MALE")
+			comments := p.Comment(c.Pos())
+			testingx.Expect(t, comments, testingx.Equal([]string{
+				"男",
+			}))
+		})
 
-		s := tpe.Type().(*types.Named).Underlying().(*types.Struct)
+		t.Run("Struct", func(t *testing.T) {
+			tpe := p.Type("Struct")
+			_, lines := p.Doc(tpe.Pos())
+			testingx.Expect(t, lines, testingx.Equal([]string{
+				"Struct",
+			}))
 
-		for i := 0; i < s.NumFields(); i++ {
-			f := s.Field(i)
+			s := tpe.Type().(*types.Named).Underlying().(*types.Struct)
 
-			if f.Name() == "ID" {
-				_, lines := p.Doc(f.Pos())
-				gomega.NewWithT(t).Expect(lines).To(gomega.Equal([]string{
-					"StructID",
-				}))
+			for i := 0; i < s.NumFields(); i++ {
+				f := s.Field(i)
+
+				if f.Name() == "ID" {
+					_, lines := p.Doc(f.Pos())
+					testingx.Expect(t, lines, testingx.Equal([]string{
+						"StructID",
+					}))
+				}
+
+				if f.Name() == "Slice" {
+					_, lines := p.Doc(f.Pos())
+					testingx.Expect(t, len(lines), testingx.Be(0))
+				}
 			}
-
-			if f.Name() == "Slice" {
-				_, lines := p.Doc(f.Pos())
-				gomega.NewWithT(t).Expect(lines).To(gomega.BeNil())
-			}
-		}
+		})
 	})
 
 	tpe := p.Type("FakeBool")
-	gomega.NewWithT(t).Expect(p.MethodsOf(tpe.Type().(*types.Named), false)).To(gomega.HaveLen(1))
-	gomega.NewWithT(t).Expect(p.MethodsOf(tpe.Type().(*types.Named), true)).To(gomega.HaveLen(1))
+	testingx.Expect(t, p.MethodsOf(tpe.Type().(*types.Named), false), testingx.HaveLen[[]*types.Func](1))
+	testingx.Expect(t, p.MethodsOf(tpe.Type().(*types.Named), true), testingx.HaveLen[[]*types.Func](1))
 
 	t.Run("ResultsOf", func(t *testing.T) {
 		funcResults := map[string]string{
@@ -66,7 +76,7 @@ func TestLoad(t *testing.T) {
 			t.Run(k, func(t *testing.T) {
 				fn := p.Function(k)
 				ar, _ := p.ResultsOf(fn)
-				gomega.NewWithT(t).Expect(ar.String()).To(gomega.Equal(r))
+				testingx.Expect(t, ar.String(), testingx.Equal(r))
 			})
 		}
 	})

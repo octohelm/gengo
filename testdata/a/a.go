@@ -31,6 +31,14 @@ type (
 	FakeBool int
 )
 
+type Gender int
+
+const (
+	GENDER_UNKNOWN Gender = iota
+	GENDER__MALE          // 男
+	GENDER__FEMALE        // 女
+)
+
 func (FakeBool) OpenAPISchemaType() []string { return []string{"boolean"} }
 
 // Map

@@ -3,12 +3,12 @@ package gengo
 import (
 	corecontext "context"
 	"fmt"
+	"go/token"
 	"go/types"
 	"sort"
 	"strings"
 
 	"github.com/go-courier/logr"
-
 	gengotypes "github.com/octohelm/gengo/pkg/types"
 	"github.com/pkg/errors"
 )
@@ -31,6 +31,7 @@ func NewContext(args *GeneratorArgs) (Executor, error) {
 }
 
 type Context interface {
+	LocateInPackage(pos token.Pos) gengotypes.Package
 	Package(importPath string) gengotypes.Package
 	Doc(typ types.Object) (Tags, []string)
 	Writer() SnippetWriter
@@ -122,6 +123,10 @@ func (c *context) Package(importPath string) gengotypes.Package {
 	return c.universe.Package(importPath)
 }
 
+func (c *context) LocateInPackage(pos token.Pos) gengotypes.Package {
+	return c.universe.LocateInPackage(pos)
+}
+
 func (c *context) Doc(typ types.Object) (Tags, []string) {
 	tags, doc := c.universe.Package(typ.Pkg().Path()).Doc(typ.Pos())
 	return merge(c.pkgTags, tags), doc
@@ -170,7 +175,7 @@ func (c *context) doGenerate(ctx corecontext.Context, g Generator) error {
 					if err := g.GenerateType(c, named); err != nil {
 						return err
 					}
-					logr.FromContext(ctx).Debug(fmt.Sprintf("`%s` gen found for  %s.", g.Name(), named))
+					logr.FromContext(ctx).Debug(fmt.Sprintf("generate `%s` for %s.", g.Name(), named))
 				}
 			}
 		}

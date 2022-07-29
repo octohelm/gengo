@@ -82,7 +82,7 @@ func newPkg(pkg *packages.Package, u Universe) Package {
 		if c != nil && c.Pos() == stmtPos {
 			// stmt is CommentGroup
 			fl = fileLineFor(c.End(), 0)
-		} else {
+		} else if !isTrailing {
 			fl = fileLineFor(stmtPos, -1)
 		}
 
@@ -284,8 +284,8 @@ func (pi *pkgInfo) priorCommentLines(pos token.Pos, deltaLines int) *ast.Comment
 	if deltaLines == 0 {
 		// should ignore trailing comments
 		// when deltaLines eq 0 means find trailing comments
-		if _, ok := pi.endLineToTrailingCommentGroup[key]; ok {
-			return nil
+		if lines, ok := pi.endLineToTrailingCommentGroup[key]; ok {
+			return lines
 		}
 	}
 	return pi.endLineToCommentGroup[key]
