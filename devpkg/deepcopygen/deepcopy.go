@@ -16,35 +16,32 @@ type deepcopyGen struct {
 	processed map[*types.Named]bool
 }
 
-func (deepcopyGen) Name() string {
+func (*deepcopyGen) Name() string {
 	return "deepcopy"
 }
 
-func (*deepcopyGen) New() gengo.Generator {
-	return &deepcopyGen{}
+func (*deepcopyGen) New(c gengo.Context) gengo.Generator {
+	return &deepcopyGen{
+		SnippetWriter: c.Writer(),
+		processed:     map[*types.Named]bool{},
+	}
 }
 
-func (g *deepcopyGen) Init(c *gengo.Context, s gengo.GeneratorCreator) (gengo.Generator, error) {
-	g.processed = map[*types.Named]bool{}
-
-	return s.Init(c, g, func(g gengo.Generator, sw gengo.SnippetWriter) error {
-		g.(*deepcopyGen).SnippetWriter = sw
-		return nil
-	})
+func (g *deepcopyGen) GenerateType(c gengo.Context, named *types.Named) error {
+	return g.generateType(c, named)
 }
 
-func (g *deepcopyGen) GenerateType(c *gengo.Context, t *types.Named) error {
-	return g.generateType(c, t)
-}
-
-func (g *deepcopyGen) generateType(c *gengo.Context, t *types.Named) error {
-	if _, ok := g.processed[t]; ok {
+func (g *deepcopyGen) generateType(c gengo.Context, named *types.Named) error {
+	if _, ok := g.processed[named]; ok {
 		return nil
 	}
 
-	tags, _ := c.Universe.Package(t.Obj().Pkg().Path()).Doc(t.Obj().Pos())
+	g.processed[named] = true
+
+	tags, _ := c.Doc(named.Obj())
 
 	interfaces := ""
+
 	if tn, ok := tags["gengo:deepcopy:interfaces"]; ok {
 		if n := tn[0]; len(n) > 0 {
 			interfaces = n
@@ -64,11 +61,11 @@ func(in *[[ .type | id ]]) DeepCopyObject() [[ .interfaces | id ]] {
 
 `, gengo.Args{
 			"interfaces": interfaces,
-			"type":       t.Obj(),
+			"type":       named.Obj(),
 		})
 	}
 
-	switch x := t.Underlying().(type) {
+	switch x := named.Underlying().(type) {
 	case *types.Map:
 		g.Do(`
 func(in [[ .type | id ]]) DeepCopy() [[ .type | id ]] {
@@ -86,7 +83,9 @@ func(in [[ .type | id ]]) DeepCopyInto(out [[ .type | id ]] ) {
     }
 }
 
-`, gengo.Args{"type": t.Obj()})
+`, gengo.Args{
+			"type": named.Obj(),
+		})
 
 	case *types.Struct:
 		g.Do(`
@@ -103,7 +102,7 @@ func(in *[[ .type | id ]]) DeepCopyInto(out *[[ .type | id ]]) {
 	[[ .fieldCopies | render ]]
 }
 `, gengo.Args{
-			"type": t.Obj(),
+			"type": named.Obj(),
 			"fieldCopies": func(sw gengo.SnippetWriter) {
 				for i := 0; i < x.NumFields(); i++ {
 					f := x.Field(i)
@@ -112,7 +111,7 @@ func(in *[[ .type | id ]]) DeepCopyInto(out *[[ .type | id ]]) {
 
 					switch x := ft.(type) {
 					case *types.Named:
-						inSamePkg := x.Obj().Pkg().Path() == t.Obj().Pkg().Path()
+						inSamePkg := x.Obj().Pkg().Path() == named.Obj().Pkg().Path()
 						hasDeepCopy := false
 						hasDeepCopyInto := false
 						ptr := true
@@ -143,17 +142,27 @@ func(in *[[ .type | id ]]) DeepCopyInto(out *[[ .type | id ]]) {
 							defers = append(defers, x)
 						}
 
-						g.Do(`[[ 
-if .canDeepCopyIntoPtr ]] in.[[ .fieldName ]].DeepCopyInto(&out.[[ .fieldName ]]) [[ 
-else if .canDeepCopyNonPtr ]] out.[[ .fieldName ]] = in.[[ .fieldName ]].DeepCopy() [[ 
-else if .canDeepCopyPtr ]] out.[[ .fieldName ]] = *in.[[ .fieldName ]].DeepCopy() [[ 
-else ]] out.[[ .fieldName ]] = in.[[ .fieldName ]] [[ end ]]
+						if ptr && (hasDeepCopyInto || inSamePkg) {
+							g.Do(`in.[[ .fieldName ]].DeepCopyInto(&out.[[ .fieldName ]])
 `, gengo.Args{
-							"fieldName":          f.Name(),
-							"canDeepCopyIntoPtr": ptr && (hasDeepCopyInto || inSamePkg),
-							"canDeepCopyNonPtr":  !ptr && (hasDeepCopy || inSamePkg),
-							"canDeepCopyPtr":     ptr && (hasDeepCopy || inSamePkg),
-						})
+								"fieldName": f.Name(),
+							})
+						} else if !ptr && (hasDeepCopy || inSamePkg) {
+							g.Do(`out.[[ .fieldName ]] = in.[[ .fieldName ]].DeepCopy()
+`, gengo.Args{
+								"fieldName": f.Name(),
+							})
+						} else if ptr && (hasDeepCopy || inSamePkg) {
+							g.Do(`out.[[ .fieldName ]] = *in.[[ .fieldName ]].DeepCopy()
+`, gengo.Args{
+								"fieldName": f.Name(),
+							})
+						} else {
+							g.Do(`out.[[ .fieldName ]] = in.[[ .fieldName ]]
+`, gengo.Args{
+								"fieldName": f.Name(),
+							})
+						}
 					case *types.Map:
 						g.Do(`
 if in.[[ .fieldName ]] != nil {
@@ -181,7 +190,9 @@ if in.[[ .fieldName ]] != nil {
 					default:
 						g.Do(`
 out.[[ .fieldName ]] = in.[[ .fieldName ]]
-`, gengo.Args{"fieldName": f.Name()})
+`, gengo.Args{
+							"fieldName": f.Name(),
+						})
 					}
 				}
 			},
@@ -198,7 +209,9 @@ func(in *[[ .type | id ]]) DeepCopy() *[[ .type | id ]] {
 	return out
 }
 
-`, gengo.Args{"type": t.Obj()})
+`, gengo.Args{
+			"type": named.Obj(),
+		})
 	}
 
 	for i := range defers {

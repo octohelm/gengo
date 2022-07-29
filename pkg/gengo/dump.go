@@ -82,19 +82,19 @@ func (d *Dumper) TypeLit(tpe typesutil.Type) string {
 
 type ValueLitOpt struct {
 	SubValue    bool
-	OnInterface func(v interface{}) string
-	OnNamedType func(v interface{}) (string, bool)
+	OnInterface func(v any) string
+	OnNamedType func(v any) (string, bool)
 }
 
 type ValueLitOptFn func(o *ValueLitOpt)
 
-func OnInterface(onUnknown func(v interface{}) string) ValueLitOptFn {
+func OnInterface(onUnknown func(v any) string) ValueLitOptFn {
 	return func(o *ValueLitOpt) {
 		o.OnInterface = onUnknown
 	}
 }
 
-func OnNamedType(onNamedType func(v interface{}) (string, bool)) ValueLitOptFn {
+func OnNamedType(onNamedType func(v any) (string, bool)) ValueLitOptFn {
 	return func(o *ValueLitOpt) {
 		o.OnNamedType = onNamedType
 	}
@@ -125,7 +125,7 @@ var basicKinds = map[reflect.Kind]bool{
 	reflect.Complex128: true,
 }
 
-func (d *Dumper) ValueLit(in interface{}, optFns ...ValueLitOptFn) string {
+func (d *Dumper) ValueLit(in any, optFns ...ValueLitOptFn) string {
 	rv, ok := in.(reflect.Value)
 	if !ok {
 		rv = reflect.ValueOf(in)

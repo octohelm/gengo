@@ -8,6 +8,7 @@ import (
 
 	_ "github.com/octohelm/gengo/devpkg/deepcopygen"
 	_ "github.com/octohelm/gengo/devpkg/defaultergen"
+	_ "github.com/octohelm/gengo/devpkg/runtimedocgen"
 )
 
 func TestPkgGenerator(t *testing.T) {

@@ -26,7 +26,7 @@ type SnippetWriter interface {
 	Dumper() *Dumper
 }
 
-type Args = map[string]interface{}
+type Args = map[string]any
 
 func NewSnippetWriter(w io.Writer, ns namer.NameSystems) SnippetWriter {
 	sw := &snippetWriter{
@@ -95,8 +95,8 @@ func createFuncMap(nameSystems namer.NameSystems) template.FuncMap {
 	return funcMap
 }
 
-func createID(nameSystems namer.NameSystems) func(v interface{}) string {
-	return func(v interface{}) string {
+func createID(nameSystems namer.NameSystems) func(v any) string {
+	return func(v any) string {
 		switch x := v.(type) {
 		case string:
 			ref, err := gengotypes.ParseRef(x)

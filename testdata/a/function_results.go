@@ -16,14 +16,14 @@ func (String) Method() string {
 	return strings.Join(strings.Split("1", ","), ",")
 }
 
-func FuncSingleReturn() interface{} {
+func FuncSingleReturn() any {
 	// should skip
 	_ = func() bool {
 		a := true
 		return !a
 	}()
 
-	var a interface{}
+	var a any
 	a = "" + "1"
 	a = 2
 
@@ -36,15 +36,15 @@ func FuncSelectExprReturn() string {
 	return v.s
 }
 
-func FuncWillCall() (a interface{}, s String) {
+func FuncWillCall() (a any, s String) {
 	return FuncSingleReturn(), String(FuncSelectExprReturn())
 }
 
-func FuncReturnWithCallDirectly() (a interface{}, b String) {
+func FuncReturnWithCallDirectly() (a any, b String) {
 	return FuncWillCall()
 }
 
-func FuncWithNamedReturn() (a interface{}, b String) {
+func FuncWithNamedReturn() (a any, b String) {
 	a, b = FuncWillCall()
 	return
 }
@@ -53,13 +53,13 @@ func newErr() error {
 	return errors.New("some err")
 }
 
-func FuncSingleNamedReturnByAssign() (a interface{}, s String, err error) {
+func FuncSingleNamedReturnByAssign() (a any, s String, err error) {
 	a = "" + "1"
 	s = "2"
 	return a, s, newErr()
 }
 
-func FunWithSwitch() (a interface{}, b String) {
+func FunWithSwitch() (a any, b String) {
 	switch a {
 	case "1":
 		a = "a1"
@@ -80,7 +80,7 @@ func str(a string, b string) string {
 	return a + b
 }
 
-func FuncWithIf() (a interface{}) {
+func FuncWithIf() (a any) {
 	if true {
 		a = "a0"
 		return
@@ -93,18 +93,18 @@ func FuncWithIf() (a interface{}) {
 	}
 }
 
-func FuncCallReturnAssign() (a interface{}, b String) {
+func FuncCallReturnAssign() (a any, b String) {
 	return FuncSingleReturn(), String(FuncSelectExprReturn())
 }
 
-func FuncCallWithFuncLit() (a interface{}, b String) {
-	call := func() interface{} {
+func FuncCallWithFuncLit() (a any, b String) {
+	call := func() any {
 		return 1
 	}
 	return call(), "s"
 }
 
-func FuncWithImportedCall() interface{} {
+func FuncWithImportedCall() any {
 	return b.V()
 }
 
@@ -124,6 +124,6 @@ func curryCall(r bool) Func {
 	}
 }
 
-func FuncCurryCall() interface{} {
+func FuncCurryCall() any {
 	return curryCall(true)()()
 }

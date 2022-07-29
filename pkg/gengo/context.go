@@ -1,7 +1,7 @@
 package gengo
 
 import (
-	"context"
+	corecontext "context"
 	"fmt"
 	"go/types"
 	"sort"
@@ -13,29 +13,45 @@ import (
 	"github.com/pkg/errors"
 )
 
-func NewContext(args *GeneratorArgs) (*Context, error) {
+type Executor interface {
+	Execute(ctx corecontext.Context, generators ...Generator) error
+}
+
+func NewContext(args *GeneratorArgs) (Executor, error) {
 	u, pkgPaths, err := gengotypes.Load(args.Entrypoint)
 	if err != nil {
 		return nil, err
 	}
-	c := &Context{
-		PkgPaths: pkgPaths,
-		Args:     args,
-		Universe: u,
+	c := &context{
+		pkgPaths: pkgPaths,
+		args:     args,
+		universe: u,
 	}
 	return c, nil
 }
 
-type Context struct {
-	PkgPaths map[string]bool
-	Args     *GeneratorArgs
-	Universe gengotypes.Universe
-	Package  gengotypes.Package
-	Tags     map[string][]string
+type Context interface {
+	Package(importPath string) gengotypes.Package
+	Doc(typ types.Object) (Tags, []string)
+	Writer() SnippetWriter
 }
 
-func (c *Context) Execute(ctx context.Context, generators ...Generator) error {
-	for pkgPath := range c.PkgPaths {
+type context struct {
+	pkgPaths map[string]bool
+	args     *GeneratorArgs
+
+	universe gengotypes.Universe
+	pkgTags  map[string][]string
+	pkg      gengotypes.Package
+	genfile  *genfile
+}
+
+func (c *context) Writer() SnippetWriter {
+	return c.genfile
+}
+
+func (c *context) Execute(ctx corecontext.Context, generators ...Generator) error {
+	for pkgPath := range c.pkgPaths {
 		if err := c.pkgExecute(ctx, pkgPath, generators...); err != nil {
 			return err
 		}
@@ -43,24 +59,24 @@ func (c *Context) Execute(ctx context.Context, generators ...Generator) error {
 	return nil
 }
 
-func (c *Context) pkgExecute(ctx context.Context, pkg string, generators ...Generator) error {
-	p, ok := c.Universe[pkg]
+func (c *context) pkgExecute(ctx corecontext.Context, pkg string, generators ...Generator) error {
+	p, ok := c.universe[pkg]
 	if !ok {
 		return errors.Errorf("invalid pkg `%s`", pkg)
 	}
 
-	pkgCtx := &Context{
-		Args:     c.Args,
-		Package:  p,
-		Universe: c.Universe,
-		Tags:     map[string][]string{},
+	pkgCtx := &context{
+		universe: c.universe,
+		args:     c.args,
+		pkg:      p,
+		pkgTags:  map[string][]string{},
 	}
 
 	for _, f := range p.Files() {
 		if f.Doc != nil && len(f.Doc.List) > 0 {
 			tags, _ := gengotypes.ExtractCommentTags(strings.Split(f.Doc.Text(), "\n"))
 			for k := range tags {
-				pkgCtx.Tags[k] = tags[k]
+				pkgCtx.pkgTags[k] = tags[k]
 			}
 		}
 	}
@@ -68,18 +84,30 @@ func (c *Context) pkgExecute(ctx context.Context, pkg string, generators ...Gene
 	gfs := genfiles{}
 
 	for i := range generators {
-		g, err := generators[i].Init(pkgCtx, gfs)
-		if err != nil {
+		pkgCtxForGen := &context{
+			args:     pkgCtx.args,
+			universe: pkgCtx.universe,
+			pkg:      pkgCtx.pkg,
+			pkgTags:  pkgCtx.pkgTags,
+			genfile:  newGenfile(),
+		}
+
+		if err := pkgCtxForGen.genfile.InitWith(pkgCtxForGen); err != nil {
 			return err
 		}
 
-		if e := pkgCtx.doGenerate(ctx, g); e != nil {
-			return errors.Wrapf(e, "`%s` generate failed for %s", g.Name(), pkgCtx.Package.Pkg().Path())
+		g := generators[i].New(pkgCtxForGen)
+		pkgCtxForGen.genfile.generator = g
+
+		gfs[g.Name()] = pkgCtxForGen.genfile
+
+		if e := pkgCtxForGen.doGenerate(ctx, g); e != nil {
+			return errors.Wrapf(e, "`%s` generate failed for %s", g.Name(), pkgCtx.pkg.Pkg().Path())
 		}
 	}
 
 	for _, w := range gfs {
-		if err := w.WriteToFile(pkgCtx); err != nil {
+		if err := w.WriteToFile(pkgCtx, c.args); err != nil {
 			return err
 		}
 	}
@@ -87,12 +115,24 @@ func (c *Context) pkgExecute(ctx context.Context, pkg string, generators ...Gene
 	return nil
 }
 
-func (c *Context) doGenerate(ctx context.Context, g Generator) error {
-	if c.Package == nil {
+func (c *context) Package(importPath string) gengotypes.Package {
+	if importPath == "" {
+		return c.pkg
+	}
+	return c.universe.Package(importPath)
+}
+
+func (c *context) Doc(typ types.Object) (Tags, []string) {
+	tags, doc := c.universe.Package(typ.Pkg().Path()).Doc(typ.Pos())
+	return merge(c.pkgTags, tags), doc
+}
+
+func (c *context) doGenerate(ctx corecontext.Context, g Generator) error {
+	if c.pkg == nil {
 		return nil
 	}
 
-	pkgTypes := c.Package.Types()
+	pkgTypes := c.pkg.Types()
 
 	names := make([]string, 0)
 
@@ -105,22 +145,20 @@ func (c *Context) doGenerate(ctx context.Context, g Generator) error {
 	for _, n := range names {
 		tpe := pkgTypes[n].Type()
 
-		// skip type XXX interface{}
+		// skip type XXX any
 		if _, ok := tpe.Underlying().(*types.Interface); ok {
 			continue
 		}
 
 		if named, ok := tpe.(*types.Named); ok {
 			// 	skip alias other pkg type XXX = XXX2
-			if named.Obj().Pkg() != c.Package.Pkg() {
+			if named.Obj().Pkg() != c.pkg.Pkg() {
 				continue
 			}
 
-			tags, _ := c.Universe.Package(named.Obj().Pkg().Path()).Doc(named.Obj().Pos())
+			tags, _ := c.Doc(named.Obj())
 
-			mergedTags := merge(c.Tags, tags)
-
-			if isGeneratorEnabled(g, mergedTags) {
+			if isGeneratorEnabled(g, tags) {
 				shouldProcess := true
 
 				if typeFilter, ok := g.(GeneratorTypeFilter); ok {
@@ -145,3 +183,5 @@ func isGeneratorEnabled(g Generator, tags map[string][]string) bool {
 	values, ok := tags["gengo:"+g.Name()]
 	return ok && strings.Join(values, "") != "false"
 }
+
+type Tags map[string][]string

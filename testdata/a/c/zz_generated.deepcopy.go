@@ -4,11 +4,7 @@ DON'T EDIT THIS FILE
 */
 package c
 
-import (
-	k8s_io_apimachinery_pkg_runtime "k8s.io/apimachinery/pkg/runtime"
-)
-
-func (in *KubePkg) DeepCopyObject() k8s_io_apimachinery_pkg_runtime.Object {
+func (in *KubePkg) DeepCopyObject() Object {
 	if c := in.DeepCopy(); c != nil {
 		return c
 	}
@@ -25,8 +21,6 @@ func (in *KubePkg) DeepCopy() *KubePkg {
 }
 
 func (in *KubePkg) DeepCopyInto(out *KubePkg) {
-	out.TypeMeta = in.TypeMeta
-	out.ObjectMeta = in.ObjectMeta
 	in.Spec.DeepCopyInto(&out.Spec)
 	in.Status.DeepCopyInto(&out.Status)
 

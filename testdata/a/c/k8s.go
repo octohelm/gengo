@@ -2,25 +2,30 @@ package c
 
 import (
 	"fmt"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+type Object interface {
+	DeepCopyObject() Object
+}
 
 // KubePkg
 // +gengo:deepcopy
-// +gengo:deepcopy:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +gengo:deepcopy:interfaces=Object
 type KubePkg struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
+	// metav1.TypeMeta   `json:",inline"`
+	// metav1.ObjectMeta `json:"metadata,omitempty"`
 	Spec   KubePkgSpec   `json:"spec,omitempty"`
 	Status KubePkgStatus `json:"status,omitempty"`
 }
 
 type KubePkgSpec struct {
-	Version   string            `json:"version"`
-	Images    map[string]string `json:"images,omitempty"`
-	Manifests Manifests         `json:"manifests,omitempty"`
+	// app 版本
+	Version string `json:"version"`
+	// images 列表
+	Images map[string]string `json:"images,omitempty"`
+	// k8s manifests
+	// 可嵌套
+	Manifests Manifests `json:"manifests,omitempty"`
 }
 
 type Manifests map[string]any

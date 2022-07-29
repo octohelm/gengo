@@ -207,7 +207,7 @@ func (pi *pkgInfo) funcResultsFrom(s *types.Signature, funcType *ast.FuncType, b
 					t := rets.At(i).Type()
 
 					switch t.String() {
-					case "error", "interface{}":
+					case "error", "any":
 						shouldDeepResolve = true
 					}
 				}

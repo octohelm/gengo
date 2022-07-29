@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-type Interface interface{}
+type Interface any
 
 // String
 type String string

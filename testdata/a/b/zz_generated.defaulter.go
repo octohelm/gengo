@@ -5,4 +5,11 @@ DON'T EDIT THIS FILE
 package b
 
 func (v *B) SetDefault() {
+
+}
+func (v *Obj) SetDefault() {
+
+}
+func (v *SubObj) SetDefault() {
+
 }

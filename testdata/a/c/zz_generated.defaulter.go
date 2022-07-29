@@ -5,18 +5,26 @@ DON'T EDIT THIS FILE
 package c
 
 func (v *C) SetDefault() {
+
 }
 func (v *DigestMeta) SetDefault() {
+
 }
 func (v *FileSize) SetDefault() {
+
 }
 func (v *KubePkg) SetDefault() {
+
 }
 func (v *KubePkgSpec) SetDefault() {
+
 }
 func (v *KubePkgStatus) SetDefault() {
+
 }
 func (v *Manifests) SetDefault() {
+
 }
 func (v *Statuses) SetDefault() {
+
 }
