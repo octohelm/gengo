@@ -45,6 +45,8 @@ type Package interface {
 	ResultsOf(tpe *types.Func) (results Results, resultN int)
 	// Position get position of pos
 	Position(pos token.Pos) token.Position
+	// ObjectOf get object of ident
+	ObjectOf(id *ast.Ident) types.Object
 }
 
 type ModInfo struct {
@@ -208,6 +210,10 @@ func (pi *pkgInfo) SourceDir() string {
 
 func (pi *pkgInfo) Pkg() *types.Package {
 	return pi.Package.Types
+}
+
+func (pi *pkgInfo) ObjectOf(id *ast.Ident) types.Object {
+	return pi.Package.TypesInfo.ObjectOf(id)
 }
 
 func (pi *pkgInfo) Module() *packages.Module {
