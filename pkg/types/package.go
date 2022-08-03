@@ -10,9 +10,16 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
+type Module struct {
+	packages.Module
+}
+
 type Package interface {
 	// Pkg of go package
 	Pkg() *types.Package
+	// Imports of go package
+	Imports() map[string]Package
+
 	// Module of go package
 	Module() *packages.Module
 	// SourceDir code source absolute dir
@@ -71,6 +78,12 @@ func newPkg(pkg *packages.Package, u Universe) Package {
 		funcs:     map[string]*types.Func{},
 
 		methods: map[*types.Named][]*types.Func{},
+
+		imports: map[string]Package{},
+	}
+
+	for pkgPath := range pkg.Imports {
+		p.imports[pkgPath] = u.Package(pkgPath)
 	}
 
 	fileLineFor := func(pos token.Pos, deltaLine int) fileLine {
@@ -185,9 +198,10 @@ func newPkg(pkg *packages.Package, u Universe) Package {
 }
 
 type pkgInfo struct {
-	u Universe
-
+	u       Universe
 	Package *packages.Package
+
+	imports map[string]Package
 
 	constants map[string]*types.Const
 	types     map[string]*types.TypeName
@@ -218,6 +232,10 @@ func (pi *pkgInfo) ObjectOf(id *ast.Ident) types.Object {
 
 func (pi *pkgInfo) Module() *packages.Module {
 	return pi.Package.Module
+}
+
+func (pi *pkgInfo) Imports() map[string]Package {
+	return pi.imports
 }
 
 func (pi *pkgInfo) Files() []*ast.File {

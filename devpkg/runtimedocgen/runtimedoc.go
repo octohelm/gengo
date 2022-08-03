@@ -1,8 +1,10 @@
 package runtimedocgen
 
 import (
-	"github.com/octohelm/gengo/pkg/gengo"
+	"go/ast"
 	"go/types"
+
+	"github.com/octohelm/gengo/pkg/gengo"
 )
 
 func init() {
@@ -28,6 +30,10 @@ func (*runtimedocGen) New(c gengo.Context) gengo.Generator {
 	return g
 }
 
+func (g *runtimedocGen) FilterType(c gengo.Context, named *types.Named) bool {
+	return ast.IsExported(named.Obj().Name())
+}
+
 func (g *runtimedocGen) GenerateType(c gengo.Context, named *types.Named) error {
 	return g.generateType(c, named)
 }
@@ -38,15 +44,19 @@ func (g *runtimedocGen) createHelperOnce() {
 	}
 	g.helperWritten = true
 
-	g.Do(`
+	g.Render(gengo.Snippet{gengo.T: `
+type canRuntimeDoc interface { 
+	RuntimeDoc(names ...string) ([]string, bool) 
+}
+
 func runtimeDoc(v any, names ...string) ([]string, bool) {
-	if c, ok := v.(interface { RuntimeDoc(names ...string) ([]string, bool) }); ok {
+	if c, ok := v.(canRuntimeDoc); ok {
 		return c.RuntimeDoc(names...)
 	}
 	return nil, false
 }
 
-`)
+`})
 }
 
 func (g *runtimedocGen) generateType(c gengo.Context, named *types.Named) error {
@@ -64,11 +74,11 @@ func (g *runtimedocGen) generateType(c gengo.Context, named *types.Named) error 
 	case *types.Struct:
 		_, doc := c.Doc(named.Obj())
 
-		g.Do(`
+		g.Render(gengo.Snippet{gengo.T: `
 func(v @Type) RuntimeDoc(names ...string) ([]string, bool) {
 	if len(names) > 0 {
 		switch names[0] {
-		@cases
+			@cases
 		}
 		@embeds
 		return nil, false
@@ -76,12 +86,17 @@ func(v @Type) RuntimeDoc(names ...string) ([]string, bool) {
 	return @doc, true
 }
 
-`, gengo.Args{
+`,
 			"Type": gengo.ID(named.Obj()),
 			"doc":  doc,
 			"cases": func(sw gengo.SnippetWriter) {
 				for i := 0; i < x.NumFields(); i++ {
 					f := x.Field(i)
+
+					if !ast.IsExported(f.Name()) {
+						continue
+					}
+
 					_, fieldDoc := c.Doc(f)
 
 					if _, ok := f.Type().(*types.Struct); ok {
@@ -96,15 +111,15 @@ func(v @Type) RuntimeDoc(names ...string) ([]string, bool) {
 					}
 
 					if sub, ok := f.Type().(*types.Named); ok {
-						if sub.Obj().Pkg().Path() == named.Obj().Pkg().Path() {
+						if isCustomDefinedNamed(sub) && sub.Obj().Pkg().Path() == named.Obj().Pkg().Path() {
 							defers = append(defers, named)
 						}
 					}
 
-					sw.Do(`
+					sw.Render(gengo.Snippet{gengo.T: `
 case @fieldName:
 	return @fieldDoc, true
-`, gengo.Args{
+`,
 						"fieldName": f.Name(),
 						"fieldDoc":  fieldDoc,
 					})
@@ -120,11 +135,11 @@ case @fieldName:
 							}
 						}
 
-						sw.Do(`
+						sw.Render(gengo.Snippet{gengo.T: `
 if doc, ok := runtimeDoc(v.@fieldName, names...); ok  {
 	return doc, ok
 }
-`, gengo.Args{
+`,
 							"fieldName": gengo.ID(f.Name()),
 						})
 					}
@@ -135,11 +150,11 @@ if doc, ok := runtimeDoc(v.@fieldName, names...); ok  {
 	default:
 		_, doc := c.Doc(named.Obj())
 
-		g.Do(`
+		g.Render(gengo.Snippet{gengo.T: `
 func(@Type) RuntimeDoc(names ...string) ([]string, bool) {
 	return @doc, true
 }
-`, gengo.Args{
+`,
 			"Type": gengo.ID(named.Obj()),
 			"doc":  doc,
 		})
@@ -152,4 +167,8 @@ func(@Type) RuntimeDoc(names ...string) ([]string, bool) {
 	}
 
 	return nil
+}
+
+func isCustomDefinedNamed(sub *types.Named) bool {
+	return sub.Obj() != nil && sub.Obj().Pkg() != nil
 }

@@ -129,7 +129,7 @@ func (c *context) LocateInPackage(pos token.Pos) gengotypes.Package {
 
 func (c *context) Doc(typ types.Object) (Tags, []string) {
 	tags, doc := c.universe.Package(typ.Pkg().Path()).Doc(typ.Pos())
-	return merge(c.pkgTags, tags), doc
+	return merge(c.args.Globals, c.pkgTags, tags), doc
 }
 
 func (c *context) doGenerate(ctx corecontext.Context, g Generator) error {
@@ -185,8 +185,22 @@ func (c *context) doGenerate(ctx corecontext.Context, g Generator) error {
 }
 
 func isGeneratorEnabled(g Generator, tags map[string][]string) bool {
-	values, ok := tags["gengo:"+g.Name()]
-	return ok && strings.Join(values, "") != "false"
+	prefix := "gengo:" + g.Name()
+
+	enabled := false
+
+	for k, values := range tags {
+		if k == prefix {
+			enabled = strings.Join(values, "") != "false"
+			return enabled
+		}
+
+		if strings.HasPrefix(k, prefix+":") {
+			enabled = true
+		}
+	}
+
+	return enabled
 }
 
 type Tags map[string][]string

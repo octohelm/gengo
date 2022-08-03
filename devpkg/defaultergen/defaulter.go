@@ -25,11 +25,11 @@ func (*defaulterGen) New(c gengo.Context) gengo.Generator {
 }
 
 func (g *defaulterGen) GenerateType(c gengo.Context, t *types.Named) error {
-	g.Do(`
+	g.Render(gengo.Snippet{gengo.T: `
 func(v *@Type) SetDefault() {
 	// TODO
 }
-`, gengo.Args{
+`,
 		"Type": gengo.ID(t.Obj()),
 	})
 	return nil

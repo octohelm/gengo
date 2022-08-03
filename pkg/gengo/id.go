@@ -62,3 +62,17 @@ func rewords(s string, reducer func(result string, word string, index int) strin
 
 	return result
 }
+
+func ImportGoPath(importPath string) string {
+	parts := strings.Split(importPath, "/vendor/")
+	return parts[len(parts)-1]
+}
+
+func PkgImportPathAndExpose(s string) (string, string) {
+	args := strings.Split(s, ".")
+	lenOfArgs := len(args)
+	if lenOfArgs > 1 {
+		return ImportGoPath(strings.Join(args[0:lenOfArgs-1], ".")), args[lenOfArgs-1]
+	}
+	return "", s
+}

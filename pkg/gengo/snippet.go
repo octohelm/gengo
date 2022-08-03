@@ -14,55 +14,34 @@ import (
 	typesx "github.com/octohelm/x/types"
 )
 
-func RangeSnippet[T any](snippetTemplates map[string]string, list []T, buildArgs func(item T) Args) Args {
-	args := Args{}
-
-	for k := range snippetTemplates {
-		snippetTemplate := snippetTemplates[k]
-
-		args[k] = func(s SnippetWriter) {
-			for i := range list {
-				s.Do(snippetTemplate, buildArgs(list[i]))
-			}
-		}
-	}
-
-	return args
-}
-
-func Snippet[T any](snippetTemplates map[string]string, input T, buildArgs func(input T) Args) Args {
-	args := Args{}
-
-	for k := range snippetTemplates {
-		snippetTemplate := snippetTemplates[k]
-
-		args[k] = func(s SnippetWriter) {
-			s.Do(snippetTemplate, buildArgs(input))
-		}
-	}
-
-	return args
-}
-
 type SnippetWriter interface {
 	io.Writer
-	Dumper() *Dumper
-	Do(snippetTemplate string, args ...Args)
+	Render(snippet Snippet)
 }
 
-type Args = map[string]any
-
 func NewSnippetWriter(w io.Writer, ns namer.NameSystems) SnippetWriter {
-	sw := &snippetWriter{
+	return &snippetWriter{
 		Writer: w,
 		ns:     ns,
 	}
-	return sw
 }
 
 type snippetWriter struct {
 	io.Writer
 	ns namer.NameSystems
+}
+
+func (sw *snippetWriter) Render(snippet Snippet) {
+	if snippet == nil {
+		return
+	}
+
+	switch snippet[T].(type) {
+	case string:
+		if s, ok := snippet[T].(string); ok {
+			sw.render(s, snippet)
+		}
+	}
 }
 
 func (sw *snippetWriter) writeString(s string) {
@@ -76,8 +55,8 @@ func (sw *snippetWriter) Dumper() *Dumper {
 	return nil
 }
 
-func (sw *snippetWriter) Do(format string, args ...Args) {
-	argSet := Args{}
+func (sw *snippetWriter) render(format string, args ...map[string]any) {
+	argSet := map[string]any{}
 
 	for i := range args {
 		a := args[i]
@@ -90,7 +69,12 @@ func (sw *snippetWriter) Do(format string, args ...Args) {
 	s.Init(bytes.NewBuffer([]byte(strings.TrimLeft(format, "\n"))))
 	s.Error = func(s *scanner.Scanner, msg string) {}
 
-	for c := s.Next(); c != scanner.EOF; c = s.Next() {
+	c := s.Next()
+	for {
+		if c == scanner.EOF {
+			break
+		}
+
 		switch c {
 		case '@':
 			named := bytes.NewBuffer(nil)
@@ -117,17 +101,29 @@ func (sw *snippetWriter) Do(format string, args ...Args) {
 				name := named.String()
 
 				if v, ok := argSet[name]; ok {
-					switch arg := v.(type) {
-					case Name:
-						sw.writeString(arg(sw.Dumper()))
+					switch x := v.(type) {
 					case Render:
-						arg(NewSnippetWriter(sw.Writer, sw.ns))
+						x(NewSnippetWriter(sw.Writer, sw.ns))
+					case Snippet:
+						NewSnippetWriter(sw.Writer, sw.ns).Render(x)
+					case SnippetBuild:
+						NewSnippetWriter(sw.Writer, sw.ns).Render(x())
+					case []Snippet:
+						for i := range x {
+							NewSnippetWriter(sw.Writer, sw.ns).Render(x[i])
+						}
+					case Name:
+						sw.writeString(x(sw.Dumper()))
 					default:
-						sw.writeString(sw.Dumper().ValueLit(arg))
+						sw.writeString(sw.Dumper().ValueLit(x))
 					}
 				} else {
 					panic(fmt.Sprintf("missing named arg `%s` in %s", name, format))
 				}
+			}
+
+			if c == '@' {
+				continue
 			}
 
 			if !(c == scanner.EOF || c == '\'') {
@@ -136,8 +132,20 @@ func (sw *snippetWriter) Do(format string, args ...Args) {
 		default:
 			sw.writeString(string(c))
 		}
+
+		c = s.Next()
 	}
 }
+
+const T = "__T__"
+
+func SnippetT(t string) Snippet {
+	return Snippet{T: t}
+}
+
+type Snippet map[string]any
+
+type SnippetBuild = func() Snippet
 
 type Render = func(sw SnippetWriter)
 
@@ -163,4 +171,40 @@ func ID(v any) Name {
 		}
 		return ""
 	}
+}
+
+func Comment(v string) Render {
+	return func(sw SnippetWriter) {
+		if v == "" {
+			return
+		}
+
+		for i, l := range strings.Split(v, "\n") {
+			if i > 0 {
+				_, _ = io.WriteString(sw, "\n")
+			}
+			_, _ = io.WriteString(sw, "// ")
+			_, _ = io.WriteString(sw, l)
+		}
+	}
+}
+
+func EachSnippet(n int, build func(i int) Snippet) []Snippet {
+	snippets := make([]Snippet, n)
+
+	for i := 0; i < n; i++ {
+		snippets[i] = build(i)
+	}
+
+	return snippets
+}
+
+func MapSnippet[T any](list []T, build func(item T) Snippet) []Snippet {
+	snippets := make([]Snippet, len(list))
+
+	for i := range list {
+		snippets[i] = build(list[i])
+	}
+
+	return snippets
 }

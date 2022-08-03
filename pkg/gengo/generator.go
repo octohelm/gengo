@@ -9,6 +9,8 @@ type GeneratorArgs struct {
 	Entrypoint []string
 	// OutputFileBaseName is the prefix of generated filename
 	OutputFileBaseName string
+	// Globals contains tags for all pkgs
+	Globals map[string][]string
 }
 
 type Generator interface {

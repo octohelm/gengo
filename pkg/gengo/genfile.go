@@ -101,6 +101,7 @@ func (ff *genfile) WriteToFile(c Context, args *GeneratorArgs) error {
 
 	formated, err := imports.Process(filename, data, &imports.Options{
 		FormatOnly: true,
+		Comments:   true,
 	})
 	if err != nil {
 		return err

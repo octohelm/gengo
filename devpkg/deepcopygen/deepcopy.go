@@ -50,7 +50,7 @@ func (g *deepcopyGen) generateType(c gengo.Context, named *types.Named) error {
 	defers := make([]*types.Named, 0)
 
 	if interfaces != "" {
-		g.Do(`
+		g.Render(gengo.Snippet{gengo.T: `
 func(in *@Type) DeepCopyObject() @ObjectInterface {
 	if c := in.DeepCopy(); c != nil {
 		return c
@@ -58,7 +58,7 @@ func(in *@Type) DeepCopyObject() @ObjectInterface {
 	return nil 
 }
 
-`, gengo.Args{
+`,
 			"ObjectInterface": gengo.ID(interfaces),
 			"Type":            gengo.ID(named.Obj()),
 		})
@@ -66,7 +66,7 @@ func(in *@Type) DeepCopyObject() @ObjectInterface {
 
 	switch x := named.Underlying().(type) {
 	case *types.Map:
-		g.Do(`
+		g.Render(gengo.Snippet{gengo.T: `
 func(in @Type) DeepCopy() @Type {
 	if in == nil {
 		return nil
@@ -82,12 +82,12 @@ func(in @Type) DeepCopyInto(out @Type) {
 	}
 }
 
-`, gengo.Args{
+`,
 			"Type": gengo.ID(named.Obj()),
 		})
 
 	case *types.Struct:
-		g.Do(`
+		g.Render(gengo.Snippet{gengo.T: `
 func(in *@Type) DeepCopy() *@Type {
 	if in == nil {
 		return nil
@@ -100,7 +100,7 @@ func(in *@Type) DeepCopy() *@Type {
 func(in *@Type) DeepCopyInto(out *@Type) {
 	@fieldCopies
 }
-`, gengo.Args{
+`,
 			"Type": gengo.ID(named.Obj()),
 			"fieldCopies": func(sw gengo.SnippetWriter) {
 				for i := 0; i < x.NumFields(); i++ {
@@ -145,28 +145,28 @@ func(in *@Type) DeepCopyInto(out *@Type) {
 						}
 
 						if ptr && hasDeepCopyInto {
-							g.Do(`in.@fieldName.DeepCopyInto(&out.@fieldName)
-`, gengo.Args{
+							g.Render(gengo.Snippet{gengo.T: `in.@fieldName.DeepCopyInto(&out.@fieldName)
+`,
 								"fieldName": gengo.ID(f.Name()),
 							})
 						} else if !ptr && hasDeepCopy {
-							g.Do(`out.@fieldName = in.@fieldName.DeepCopy()
-`, gengo.Args{
+							g.Render(gengo.Snippet{gengo.T: `out.@fieldName = in.@fieldName.DeepCopy()
+`,
 								"fieldName": gengo.ID(f.Name()),
 							})
 						} else if ptr && hasDeepCopy {
-							g.Do(`out.@fieldName = *in.@fieldName.DeepCopy()
-`, gengo.Args{
+							g.Render(gengo.Snippet{gengo.T: `out.@fieldName = *in.@fieldName.DeepCopy()
+`,
 								"fieldName": gengo.ID(f.Name()),
 							})
 						} else {
-							g.Do(`out.@fieldName = in.@fieldName
-`, gengo.Args{
+							g.Render(gengo.Snippet{gengo.T: `out.@fieldName = in.@fieldName
+`,
 								"fieldName": gengo.ID(f.Name()),
 							})
 						}
 					case *types.Map:
-						g.Do(`
+						g.Render(gengo.Snippet{gengo.T: `
 if in.@fieldName != nil {
 	i, o := &in.@fieldName, &out.@fieldName 
 	*o = make(@MapType, len(*i))
@@ -174,25 +174,25 @@ if in.@fieldName != nil {
 		(*o)[key] = val
 	}
 }
-`, gengo.Args{
+`,
 							"MapType":   gengo.ID(x),
 							"fieldName": gengo.ID(f.Name()),
 						})
 					case *types.Slice:
-						g.Do(`
+						g.Render(gengo.Snippet{gengo.T: `
 if in.@fieldName != nil {
 	i, o := &in.@fieldName, &out.@fieldName 
 	*o = make(@SliceType, len(*i))
 	copy(*o, *i)
 }
-`, gengo.Args{
+`,
 							"SliceType": gengo.ID(x),
 							"fieldName": gengo.ID(f.Name()),
 						})
 					default:
-						g.Do(`
+						g.Render(gengo.Snippet{gengo.T: `
 out.@fieldName = in.@fieldName
-`, gengo.Args{
+`,
 							"fieldName": gengo.ID(f.Name()),
 						})
 					}
@@ -200,7 +200,7 @@ out.@fieldName = in.@fieldName
 			},
 		})
 	default:
-		g.Do(`
+		g.Render(gengo.Snippet{gengo.T: `
 func(in *@Type) DeepCopy() *@Type {
 	if in == nil {
 		return nil
@@ -211,7 +211,7 @@ func(in *@Type) DeepCopy() *@Type {
 	return out
 }
 
-`, gengo.Args{
+`,
 			"Type": gengo.ID(named.Obj()),
 		})
 	}
