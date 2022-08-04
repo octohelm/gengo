@@ -1,8 +1,11 @@
 package gengo
 
 import (
+	"github.com/pkg/errors"
 	"go/types"
 )
+
+var Skip = errors.New("generate skip")
 
 type GeneratorArgs struct {
 	// Entrypoint should be import path or valid related dir path

@@ -103,6 +103,10 @@ func (c *context) pkgExecute(ctx corecontext.Context, pkg string, generators ...
 		gfs[g.Name()] = pkgCtxForGen.genfile
 
 		if e := pkgCtxForGen.doGenerate(ctx, g); e != nil {
+			if errors.Is(e, Skip) {
+				logr.FromContext(ctx).Warn(e)
+				return nil
+			}
 			return errors.Wrapf(e, "`%s` generate failed for %s", g.Name(), pkgCtx.pkg.Pkg().Path())
 		}
 	}
