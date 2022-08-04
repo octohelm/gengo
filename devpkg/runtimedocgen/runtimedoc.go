@@ -12,7 +12,6 @@ func init() {
 }
 
 type runtimedocGen struct {
-	gengo.SnippetWriter
 	processed     map[*types.Named]bool
 	helperWritten bool
 }
@@ -21,30 +20,25 @@ func (*runtimedocGen) Name() string {
 	return "runtimedoc"
 }
 
-func (*runtimedocGen) New(c gengo.Context) gengo.Generator {
-	g := &runtimedocGen{
-		SnippetWriter: c.Writer(),
-		processed:     map[*types.Named]bool{},
+func (g *runtimedocGen) GenerateType(c gengo.Context, named *types.Named) error {
+	if !ast.IsExported(named.Obj().Name()) {
+		return gengo.ErrSkip
 	}
 
-	return g
-}
+	if g.processed == nil {
+		g.processed = map[*types.Named]bool{}
+	}
 
-func (g *runtimedocGen) FilterType(c gengo.Context, named *types.Named) bool {
-	return ast.IsExported(named.Obj().Name())
-}
-
-func (g *runtimedocGen) GenerateType(c gengo.Context, named *types.Named) error {
 	return g.generateType(c, named)
 }
 
-func (g *runtimedocGen) createHelperOnce() {
+func (g *runtimedocGen) createHelperOnce(c gengo.Context) {
 	if g.helperWritten {
 		return
 	}
 	g.helperWritten = true
 
-	g.Render(gengo.Snippet{gengo.T: `
+	c.Render(gengo.Snippet{gengo.T: `
 type canRuntimeDoc interface { 
 	RuntimeDoc(names ...string) ([]string, bool) 
 }
@@ -65,7 +59,7 @@ func (g *runtimedocGen) generateType(c gengo.Context, named *types.Named) error 
 	}
 	g.processed[named] = true
 
-	g.createHelperOnce()
+	g.createHelperOnce(c)
 
 	defers := make([]*types.Named, 0)
 
@@ -74,7 +68,7 @@ func (g *runtimedocGen) generateType(c gengo.Context, named *types.Named) error 
 	case *types.Struct:
 		_, doc := c.Doc(named.Obj())
 
-		g.Render(gengo.Snippet{gengo.T: `
+		c.Render(gengo.Snippet{gengo.T: `
 func(v @Type) RuntimeDoc(names ...string) ([]string, bool) {
 	if len(names) > 0 {
 		switch names[0] {
@@ -150,7 +144,7 @@ if doc, ok := runtimeDoc(v.@fieldName, names...); ok  {
 	default:
 		_, doc := c.Doc(named.Obj())
 
-		g.Render(gengo.Snippet{gengo.T: `
+		c.Render(gengo.Snippet{gengo.T: `
 func(@Type) RuntimeDoc(names ...string) ([]string, bool) {
 	return @doc, true
 }

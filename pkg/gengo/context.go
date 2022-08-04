@@ -3,8 +3,10 @@ package gengo
 import (
 	corecontext "context"
 	"fmt"
+	reflectx "github.com/octohelm/x/reflect"
 	"go/token"
 	"go/types"
+	"reflect"
 	"sort"
 	"strings"
 
@@ -34,7 +36,7 @@ type Context interface {
 	LocateInPackage(pos token.Pos) gengotypes.Package
 	Package(importPath string) gengotypes.Package
 	Doc(typ types.Object) (Tags, []string)
-	Writer() SnippetWriter
+	Render(snippet Snippet)
 }
 
 type context struct {
@@ -45,6 +47,10 @@ type context struct {
 	pkgTags  map[string][]string
 	pkg      gengotypes.Package
 	genfile  *genfile
+}
+
+func (c *context) Render(snippet Snippet) {
+	c.genfile.Render(snippet)
 }
 
 func (c *context) Writer() SnippetWriter {
@@ -97,16 +103,12 @@ func (c *context) pkgExecute(ctx corecontext.Context, pkg string, generators ...
 			return err
 		}
 
-		g := generators[i].New(pkgCtxForGen)
+		g := pkgCtxForGen.New(generators[i])
 		pkgCtxForGen.genfile.generator = g
 
 		gfs[g.Name()] = pkgCtxForGen.genfile
 
 		if e := pkgCtxForGen.doGenerate(ctx, g); e != nil {
-			if errors.Is(e, Skip) {
-				logr.FromContext(ctx).Warn(e)
-				return nil
-			}
 			return errors.Wrapf(e, "`%s` generate failed for %s", g.Name(), pkgCtx.pkg.Pkg().Path())
 		}
 	}
@@ -168,17 +170,16 @@ func (c *context) doGenerate(ctx corecontext.Context, g Generator) error {
 			tags, _ := c.Doc(named.Obj())
 
 			if isGeneratorEnabled(g, tags) {
-				shouldProcess := true
-
-				if typeFilter, ok := g.(GeneratorTypeFilter); ok {
-					shouldProcess = typeFilter.FilterType(c, named)
-
-				}
-
-				if shouldProcess {
-					if err := g.GenerateType(c, named); err != nil {
-						return err
+				if err := g.GenerateType(c, named); err != nil {
+					if errors.Is(err, ErrSkip) {
+						continue
 					}
+					if errors.Is(err, ErrIgnore) {
+						logr.FromContext(ctx).Warn(err)
+						return nil
+					}
+					return err
+				} else {
 					logr.FromContext(ctx).Debug(fmt.Sprintf("generate `%s` for %s.", g.Name(), named))
 				}
 			}
@@ -186,6 +187,13 @@ func (c *context) doGenerate(ctx corecontext.Context, g Generator) error {
 	}
 
 	return nil
+}
+
+func (c *context) New(generator Generator) Generator {
+	if creator, ok := generator.(GeneratorNewer); ok {
+		return creator.New(c)
+	}
+	return reflect.New(reflectx.Indirect(reflect.ValueOf(generator)).Type()).Interface().(Generator)
 }
 
 func isGeneratorEnabled(g Generator, tags map[string][]string) bool {

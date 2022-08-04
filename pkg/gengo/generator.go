@@ -5,7 +5,10 @@ import (
 	"go/types"
 )
 
-var Skip = errors.New("generate skip")
+var (
+	ErrSkip   = errors.New("skip")
+	ErrIgnore = errors.New("ignore")
+)
 
 type GeneratorArgs struct {
 	// Entrypoint should be import path or valid related dir path
@@ -19,14 +22,13 @@ type GeneratorArgs struct {
 type Generator interface {
 	// Name generator name
 	Name() string
-	// New generator
-	New(c Context) Generator
 	// GenerateType do generate for each named type
 	GenerateType(Context, *types.Named) error
 }
 
-type GeneratorTypeFilter interface {
-	FilterType(Context, *types.Named) bool
+type GeneratorNewer interface {
+	// New generator
+	New(c Context) Generator
 }
 
 type GeneratorCreator interface {

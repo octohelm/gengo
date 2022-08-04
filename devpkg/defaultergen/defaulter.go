@@ -10,22 +10,14 @@ func init() {
 	gengo.Register(&defaulterGen{})
 }
 
-type defaulterGen struct {
-	gengo.SnippetWriter
-}
+type defaulterGen struct{}
 
 func (*defaulterGen) Name() string {
 	return "defaulter"
 }
 
-func (*defaulterGen) New(c gengo.Context) gengo.Generator {
-	return &defaulterGen{
-		SnippetWriter: c.Writer(),
-	}
-}
-
 func (g *defaulterGen) GenerateType(c gengo.Context, t *types.Named) error {
-	g.Render(gengo.Snippet{gengo.T: `
+	c.Render(gengo.Snippet{gengo.T: `
 func(v *@Type) SetDefault() {
 	// TODO
 }
