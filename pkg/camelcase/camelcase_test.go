@@ -2,6 +2,23 @@ package camelcase
 
 import "fmt"
 
+func ExampleCases() {
+	s := "vimRPCPlugin"
+	fmt.Println(UpperCamelCase(s))
+	fmt.Println(LowerCamelCase(s))
+	fmt.Println(UpperKebabCase(s))
+	fmt.Println(LowerKebabCase(s))
+	fmt.Println(UpperSnakeCase(s))
+	fmt.Println(LowerSnakeCase(s))
+	// Output:
+	// VimRpcPlugin
+	// vimRpcPlugin
+	// VIM-RPC-PLUGIN
+	// vim-rpc-plugin
+	// VIM_RPC_PLUGIN
+	// vim_rpc_plugin
+}
+
 func ExampleSplit() {
 	for _, c := range []string{
 		"",
