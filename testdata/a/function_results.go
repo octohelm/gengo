@@ -93,6 +93,36 @@ func FuncWithIf() (a any) {
 	}
 }
 
+func callChains() callChain {
+	return callChain{}
+}
+
+type callChain struct {
+}
+
+func (callChain) With() callChain {
+	return callChain{}
+}
+
+func (callChain) Call() (*string, error) {
+	a := ""
+	return &a, nil
+}
+
+func FuncWithCallChain() (any, error) {
+	var a *string
+
+	if true {
+		s, err := callChains().With().Call()
+		if err != nil {
+			return nil, err
+		}
+		a = s
+	}
+
+	return a, nil
+}
+
 func FuncCallReturnAssign() (a any, b String) {
 	return FuncSingleReturn(), String(FuncSelectExprReturn())
 }

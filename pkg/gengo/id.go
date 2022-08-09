@@ -1,8 +1,9 @@
 package gengo
 
 import (
-	"github.com/octohelm/gengo/pkg/camelcase"
 	"strings"
+
+	"github.com/octohelm/gengo/pkg/camelcase"
 )
 
 var (

@@ -71,6 +71,7 @@ func newPkg(pkg *packages.Package, u Universe) Package {
 		endLineToTrailingCommentGroup: map[fileLine]*ast.CommentGroup{},
 
 		signatures:  map[*types.Signature]ast.Node{},
+		funcDecls:   map[*types.Func]ast.Node{},
 		funcResults: map[*types.Signature][]TypeAndValues{},
 
 		constants: map[string]*types.Const{},
@@ -78,7 +79,6 @@ func newPkg(pkg *packages.Package, u Universe) Package {
 		funcs:     map[string]*types.Func{},
 
 		methods: map[*types.Named][]*types.Func{},
-
 		imports: map[string]Package{},
 	}
 
@@ -112,58 +112,6 @@ func newPkg(pkg *packages.Package, u Universe) Package {
 		}
 	}
 
-	for i := range p.Package.Syntax {
-		f := p.Package.Syntax[i]
-
-		ast.Inspect(f, func(node ast.Node) bool {
-			switch x := node.(type) {
-			case *ast.CallExpr:
-				// signature will be from other package
-				// stored p.TypesInfo.Uses[*ast.Ident].(*types.PkgName)
-				fn := p.Package.TypesInfo.TypeOf(x.Fun)
-				if fn != nil {
-					if s, ok := fn.(*types.Signature); ok {
-						if n, ok := p.signatures[s]; ok {
-							switch n.(type) {
-							case *ast.FuncDecl, *ast.FuncLit:
-								// skip declared functions
-							default:
-								p.signatures[s] = x.Fun
-							}
-						} else {
-							p.signatures[s] = x.Fun
-						}
-					}
-				}
-			case *ast.FuncDecl:
-				fn := p.Package.TypesInfo.TypeOf(x.Name)
-				if fn != nil {
-					p.signatures[fn.(*types.Signature)] = x
-				}
-			case *ast.FuncLit:
-				fn := p.Package.TypesInfo.TypeOf(x)
-				if fn != nil {
-					p.signatures[fn.(*types.Signature)] = x
-				}
-			case *ast.CommentGroup:
-				collectCommentGroup(x, false, x.Pos())
-			case *ast.ValueSpec:
-				collectCommentGroup(x.Doc, false, x.Pos())
-				collectCommentGroup(x.Comment, true, x.Pos())
-			case *ast.ImportSpec:
-				collectCommentGroup(x.Doc, false, x.Pos())
-				collectCommentGroup(x.Comment, true, x.Pos())
-			case *ast.TypeSpec:
-				collectCommentGroup(x.Doc, false, x.Pos())
-				collectCommentGroup(x.Comment, true, x.Pos())
-			case *ast.Field:
-				collectCommentGroup(x.Doc, false, x.Pos())
-				collectCommentGroup(x.Comment, true, x.Pos())
-			}
-			return true
-		})
-	}
-
 	for ident := range p.Package.TypesInfo.Defs {
 		switch x := p.Package.TypesInfo.Defs[ident].(type) {
 		case *types.Func:
@@ -194,6 +142,82 @@ func newPkg(pkg *packages.Package, u Universe) Package {
 		}
 	}
 
+	for i := range p.Package.Syntax {
+		f := p.Package.Syntax[i]
+
+		ast.Inspect(f, func(node ast.Node) bool {
+			switch x := node.(type) {
+			case *ast.FuncDecl:
+				fn := p.Package.TypesInfo.TypeOf(x.Name)
+				if fn != nil {
+					if s, ok := fn.(*types.Signature); ok {
+						if _, ok := p.signatures[s]; !ok {
+							p.signatures[s] = x
+						}
+					}
+					if f, ok := p.Package.TypesInfo.ObjectOf(x.Name).(*types.Func); ok {
+						p.funcDecls[f] = x
+					}
+				}
+			case *ast.FuncLit:
+				fn := p.Package.TypesInfo.TypeOf(x.Type)
+				if fn != nil {
+					if s, ok := fn.(*types.Signature); ok {
+						if _, ok := p.signatures[s]; !ok {
+							p.signatures[s] = x
+						}
+					}
+					for _, o := range p.Package.TypesInfo.Defs {
+						if f, ok := o.(*types.Func); ok {
+							if f.Pos() == x.Pos() {
+								p.funcDecls[f] = x
+							}
+						}
+					}
+				}
+			case *ast.CommentGroup:
+				collectCommentGroup(x, false, x.Pos())
+			case *ast.ValueSpec:
+				collectCommentGroup(x.Doc, false, x.Pos())
+				collectCommentGroup(x.Comment, true, x.Pos())
+			case *ast.ImportSpec:
+				collectCommentGroup(x.Doc, false, x.Pos())
+				collectCommentGroup(x.Comment, true, x.Pos())
+			case *ast.TypeSpec:
+				collectCommentGroup(x.Doc, false, x.Pos())
+				collectCommentGroup(x.Comment, true, x.Pos())
+			case *ast.Field:
+				collectCommentGroup(x.Doc, false, x.Pos())
+				collectCommentGroup(x.Comment, true, x.Pos())
+			}
+			return true
+		})
+	}
+
+	for i := range p.Package.Syntax {
+		ast.Inspect(p.Package.Syntax[i], func(node ast.Node) bool {
+			switch x := node.(type) {
+			case *ast.CallExpr:
+				fn := p.Package.TypesInfo.TypeOf(x.Fun)
+				if fn != nil {
+					if s, ok := fn.(*types.Signature); ok {
+						if n, ok := p.signatures[s]; ok {
+							switch n.(type) {
+							case *ast.FuncDecl, *ast.FuncLit:
+								// skip declared functions
+							default:
+								p.signatures[s] = x.Fun
+							}
+						} else {
+							p.signatures[s] = x.Fun
+						}
+					}
+				}
+			}
+			return true
+		})
+	}
+
 	return p
 }
 
@@ -211,8 +235,9 @@ type pkgInfo struct {
 	endLineToCommentGroup         map[fileLine]*ast.CommentGroup
 	endLineToTrailingCommentGroup map[fileLine]*ast.CommentGroup
 
-	signatures  map[*types.Signature]ast.Node
 	funcResults map[*types.Signature][]TypeAndValues
+	signatures  map[*types.Signature]ast.Node
+	funcDecls   map[*types.Func]ast.Node
 }
 
 func (pi *pkgInfo) SourceDir() string {

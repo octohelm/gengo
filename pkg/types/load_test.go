@@ -58,6 +58,7 @@ func TestLoad(t *testing.T) {
 
 	t.Run("ResultsOf", func(t *testing.T) {
 		funcResults := map[string]string{
+			"FuncWithCallChain":             `(untyped nil | *string, untyped nil | untyped nil)`,
 			"FuncSingleReturn":              `(2)`,
 			"FuncSelectExprReturn":          `(string)`,
 			"FuncWillCall":                  `(2, github.com/octohelm/gengo/testdata/a.String)`,

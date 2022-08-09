@@ -1,10 +1,9 @@
 package runtimedocgen
 
 import (
+	"github.com/octohelm/gengo/pkg/gengo"
 	"go/ast"
 	"go/types"
-
-	"github.com/octohelm/gengo/pkg/gengo"
 )
 
 func init() {
@@ -52,6 +51,15 @@ func runtimeDoc(v any, names ...string) ([]string, bool) {
 `})
 }
 
+func hasExposeField(t *types.Struct) bool {
+	for i := 0; i < t.NumFields(); i++ {
+		if t.Field(i).Exported() {
+			return true
+		}
+	}
+	return false
+}
+
 func (g *runtimedocGen) generateType(c gengo.Context, named *types.Named) error {
 	if _, ok := g.processed[named]; ok {
 		return nil
@@ -63,8 +71,11 @@ func (g *runtimedocGen) generateType(c gengo.Context, named *types.Named) error 
 	defers := make([]*types.Named, 0)
 
 	switch x := named.Underlying().(type) {
-
 	case *types.Struct:
+		if !hasExposeField(x) {
+			return nil
+		}
+
 		_, doc := c.Doc(named.Obj())
 
 		c.Render(gengo.Snippet{gengo.T: `
@@ -98,7 +109,7 @@ func(v @Type) RuntimeDoc(names ...string) ([]string, bool) {
 
 					// skip empty struct
 					if s, ok := f.Type().Underlying().(*types.Struct); ok {
-						if s.NumFields() == 0 {
+						if !hasExposeField(s) {
 							continue
 						}
 					}
@@ -123,7 +134,7 @@ case @fieldName:
 					f := x.Field(i)
 					if f.Embedded() {
 						if s, ok := f.Type().Underlying().(*types.Struct); ok {
-							if s.NumFields() == 0 {
+							if !hasExposeField(s) {
 								continue
 							}
 						}

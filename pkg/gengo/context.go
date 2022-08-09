@@ -3,12 +3,13 @@ package gengo
 import (
 	corecontext "context"
 	"fmt"
-	reflectx "github.com/octohelm/x/reflect"
 	"go/token"
 	"go/types"
 	"reflect"
 	"sort"
 	"strings"
+
+	reflectx "github.com/octohelm/x/reflect"
 
 	"github.com/go-courier/logr"
 	gengotypes "github.com/octohelm/gengo/pkg/types"
@@ -58,11 +59,16 @@ func (c *context) Writer() SnippetWriter {
 }
 
 func (c *context) Execute(ctx corecontext.Context, generators ...Generator) error {
+	cc, l := logr.FromContext(ctx).Start(ctx, "Gen")
+	defer l.End()
+
 	for pkgPath := range c.pkgPaths {
-		if err := c.pkgExecute(ctx, pkgPath, generators...); err != nil {
+		if err := c.pkgExecute(cc, pkgPath, generators...); err != nil {
 			return err
 		}
 	}
+
+	l.Info("all done.")
 	return nil
 }
 

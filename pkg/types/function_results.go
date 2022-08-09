@@ -5,8 +5,6 @@ import (
 	"go/ast"
 	"go/constant"
 	"go/types"
-
-	"github.com/davecgh/go-spew/spew"
 )
 
 type Results []TypeAndValues
@@ -119,18 +117,20 @@ func (pi *pkgInfo) resolveFuncResults(s *types.Signature) (finalFuncResults Resu
 		return nil
 	}
 
-	if d, ok := pi.signatures[s]; ok {
-		switch x := d.(type) {
+	if node, ok := pi.signatures[s]; ok {
+		switch x := node.(type) {
 		case *ast.FuncDecl:
 			return pi.funcResultsFrom(s, x.Type, x.Body)
 		case *ast.FuncLit:
 			return pi.funcResultsFrom(s, x.Type, x.Body)
 		case *ast.SelectorExpr:
-			if ident, ok := x.X.(*ast.Ident); ok {
-				// find in other package
-				if pkgName, ok := pi.Package.TypesInfo.Uses[ident].(*types.PkgName); ok {
-					pkgPath := pkgName.Imported().Path()
-					return pi.u.Package(pkgPath).(*pkgInfo).resolveFuncResults(s)
+			if fn, ok := pi.Package.TypesInfo.Uses[x.Sel].(*types.Func); ok {
+				pp := pi.u.Package(fn.Pkg().Path()).(*pkgInfo)
+				switch x := pp.funcDecls[fn].(type) {
+				case *ast.FuncDecl:
+					return pp.funcResultsFrom(s, x.Type, x.Body)
+				case *ast.FuncLit:
+					return pp.funcResultsFrom(s, x.Type, x.Body)
 				}
 			}
 		case *ast.CallExpr:
@@ -138,19 +138,16 @@ func (pi *pkgInfo) resolveFuncResults(s *types.Signature) (finalFuncResults Resu
 			r := s.Results()
 
 			finalFuncResults = make(Results, r.Len())
-
 			for i := 0; i < r.Len(); i++ {
 				finalFuncResults[i] = append(finalFuncResults[i], TypeAndValue{
 					Type: r.At(i).Type(),
 					At:   i,
 				})
 			}
-
 			return
-		default:
-			spew.Dump(x)
 		}
 	}
+
 	return nil
 }
 
@@ -207,7 +204,7 @@ func (pi *pkgInfo) funcResultsFrom(s *types.Signature, funcType *ast.FuncType, b
 					t := rets.At(i).Type()
 
 					switch t.String() {
-					case "error", "any":
+					case "error", "any", "interface{}":
 						shouldDeepResolve = true
 					}
 				}
@@ -226,12 +223,12 @@ func (pi *pkgInfo) funcResultsFrom(s *types.Signature, funcType *ast.FuncType, b
 			}
 		}
 
-		final.At = at
-		final.Expr = expr
 		tv, _ := pi.Eval(expr)
 
 		final.Type = tv.Type
 		final.Value = tv.Value
+		final.At = at
+		final.Expr = expr
 
 		return
 	}

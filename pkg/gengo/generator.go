@@ -1,8 +1,9 @@
 package gengo
 
 import (
-	"github.com/pkg/errors"
 	"go/types"
+
+	"github.com/pkg/errors"
 )
 
 var (
