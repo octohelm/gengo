@@ -3,10 +3,9 @@ module github.com/octohelm/gengo
 go 1.18
 
 require (
-	github.com/davecgh/go-spew v1.1.1
 	github.com/go-courier/logr v0.0.2
 	github.com/octohelm/x v0.0.0-20220721104447-6248adcd9f3f
-	github.com/onsi/gomega v1.20.0
+	github.com/onsi/gomega v1.20.1
 	github.com/pkg/errors v0.9.1
 	golang.org/x/text v0.3.7
 	golang.org/x/tools v0.1.12
