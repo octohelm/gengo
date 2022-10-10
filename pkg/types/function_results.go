@@ -209,14 +209,14 @@ func (pi *pkgInfo) funcResultsFrom(s *types.Signature, funcType *ast.FuncType, b
 					}
 				}
 
+				if final.At < rets.Len() {
+					final.Type = rets.At(final.At).Type()
+				} else {
+					final.Type = rets.At(0).Type()
+				}
+
 				if shouldDeepResolve {
 					final.From = pi.resolveFuncResults(callX)
-				} else {
-					if final.At < rets.Len() {
-						final.Type = rets.At(final.At).Type()
-					} else {
-						final.Type = rets.At(0).Type()
-					}
 				}
 
 				return final

@@ -8,6 +8,11 @@ import (
 	"github.com/octohelm/gengo/testdata/a/b"
 )
 
+type InterfaceType interface {
+	Single() string
+	Multiple() (string, error)
+}
+
 func Example() {
 
 }
@@ -38,6 +43,10 @@ func FuncSelectExprReturn() string {
 
 func FuncWillCall() (a any, s String) {
 	return FuncSingleReturn(), String(FuncSelectExprReturn())
+}
+
+func FuncReturnWithInterfaceCall() (a any, err error) {
+	return InterfaceType(nil).Multiple()
 }
 
 func FuncReturnWithCallDirectly() (a any, b String) {
