@@ -105,6 +105,8 @@ func (pi *pkgInfo) resolveFuncResults(s *types.Signature) (finalFuncResults Resu
 		return r
 	}
 
+	// registry before process to avoid stackoverflow
+	pi.funcResults[s] = finalFuncResults
 	defer func() {
 		pi.funcResults[s] = finalFuncResults
 	}()
