@@ -3,7 +3,7 @@ module github.com/octohelm/gengo
 go 1.18
 
 require (
-	github.com/go-courier/logr v0.1.0
+	github.com/go-courier/logr v0.1.1
 	github.com/octohelm/x v0.0.0-20220811034253-019992077a5d
 	github.com/onsi/gomega v1.20.0
 	github.com/pkg/errors v0.9.1
