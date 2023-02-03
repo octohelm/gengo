@@ -1,6 +1,7 @@
 package runtimedocgen
 
 import (
+	"fmt"
 	"github.com/octohelm/gengo/pkg/gengo"
 	"go/ast"
 	"go/types"
@@ -104,7 +105,8 @@ func(v @Type) RuntimeDoc(names ...string) ([]string, bool) {
 					_, fieldDoc := c.Doc(f)
 
 					if _, ok := f.Type().(*types.Struct); ok {
-						panic("not support inline struct")
+						fmt.Println("skip inline struct")
+						continue
 					}
 
 					// skip empty struct
