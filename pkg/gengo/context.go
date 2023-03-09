@@ -175,7 +175,7 @@ func (c *context) doGenerate(ctx corecontext.Context, g Generator) error {
 
 			tags, _ := c.Doc(named.Obj())
 
-			if isGeneratorEnabled(g, tags) {
+			if IsGeneratorEnabled(g, tags) {
 				if err := g.GenerateType(c, named); err != nil {
 					if errors.Is(err, ErrSkip) {
 						continue
@@ -202,7 +202,7 @@ func (c *context) New(generator Generator) Generator {
 	return reflect.New(reflectx.Indirect(reflect.ValueOf(generator)).Type()).Interface().(Generator)
 }
 
-func isGeneratorEnabled(g Generator, tags map[string][]string) bool {
+func IsGeneratorEnabled(g Generator, tags map[string][]string) bool {
 	prefix := "gengo:" + g.Name()
 
 	enabled := false

@@ -34,6 +34,9 @@ func (g *deepcopyGen) generateType(c gengo.Context, named *types.Named) error {
 	g.processed[named] = true
 
 	tags, _ := c.Doc(named.Obj())
+	if !gengo.IsGeneratorEnabled(g, tags) {
+		return nil
+	}
 
 	interfaces := ""
 
@@ -61,6 +64,8 @@ func(in *@Type) DeepCopyObject() @ObjectInterface {
 	}
 
 	switch x := named.Underlying().(type) {
+	case *types.Interface:
+
 	case *types.Map:
 		c.Render(gengo.Snippet{gengo.T: `
 func(in @Type) DeepCopy() @Type {
@@ -207,6 +212,9 @@ func(in *@Type) DeepCopy() *@Type {
 	return out
 }
 
+func (in *@Type) DeepCopyInto(out *@Type) {
+	*out = *in
+}
 `,
 			"Type": gengo.ID(named.Obj()),
 		})
