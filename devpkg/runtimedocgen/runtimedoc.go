@@ -1,8 +1,8 @@
 package runtimedocgen
 
 import (
-	"fmt"
 	"github.com/octohelm/gengo/pkg/gengo"
+	"github.com/pkg/errors"
 	"go/ast"
 	"go/types"
 )
@@ -105,7 +105,7 @@ func(v @Type) RuntimeDoc(names ...string) ([]string, bool) {
 					_, fieldDoc := c.Doc(f)
 
 					if _, ok := f.Type().(*types.Struct); ok {
-						fmt.Println("skip inline struct")
+						c.Logger().Warn(errors.Errorf("skip inline struct in %s", named))
 						continue
 					}
 

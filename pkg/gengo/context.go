@@ -38,6 +38,7 @@ type Context interface {
 	Package(importPath string) gengotypes.Package
 	Doc(typ types.Object) (Tags, []string)
 	Render(snippet Snippet)
+	Logger() logr.Logger
 }
 
 type context struct {
@@ -48,6 +49,11 @@ type context struct {
 	pkgTags  map[string][]string
 	pkg      gengotypes.Package
 	genfile  *genfile
+	l        logr.Logger
+}
+
+func (c *context) Logger() logr.Logger {
+	return c.l
 }
 
 func (c *context) Render(snippet Snippet) {
@@ -110,7 +116,9 @@ func (c *context) pkgExecute(ctx corecontext.Context, pkg string, generators ...
 		}
 
 		g := pkgCtxForGen.New(generators[i])
+
 		pkgCtxForGen.genfile.generator = g
+		pkgCtxForGen.l = logr.FromContext(ctx).WithValues("gengo", g.Name())
 
 		gfs[g.Name()] = pkgCtxForGen.genfile
 
