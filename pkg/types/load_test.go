@@ -58,20 +58,21 @@ func TestLoad(t *testing.T) {
 
 	t.Run("ResultsOf", func(t *testing.T) {
 		funcResults := map[string]string{
-			"FuncReturnWithInterfaceCall":   `(string, error)`,
-			"FuncWithCallChain":             `(untyped nil | *string, untyped nil | untyped nil)`,
-			"FuncSingleReturn":              `(2)`,
-			"FuncSelectExprReturn":          `(string)`,
-			"FuncWillCall":                  `(2, github.com/octohelm/gengo/testdata/a.String)`,
-			"FuncReturnWithCallDirectly":    `(2, github.com/octohelm/gengo/testdata/a.String)`,
-			"FuncWithNamedReturn":           `(2, github.com/octohelm/gengo/testdata/a.String)`,
-			"FuncSingleNamedReturnByAssign": `("1", "2", *github.com/pkg/errors.fundamental)`,
-			"FunWithSwitch":                 `("a1" | "a2" | "a3", "b1" | "b2" | "b3")`,
-			"FuncWithIf":                    `("a0" | "a1" | string)`,
-			"FuncCallReturnAssign":          `(2, github.com/octohelm/gengo/testdata/a.String)`,
-			"FuncCallWithFuncLit":           `(1, "s")`,
-			"FuncWithImportedCall":          `(int)`,
-			"FuncCurryCall":                 `(int)`,
+			"FuncReturnWithInterfaceCallSingle": `(string)`,
+			"FuncReturnWithInterfaceCall":       `(string, error)`,
+			"FuncWithCallChain":                 `(untyped nil | *string, untyped nil | untyped nil)`,
+			"FuncSingleReturn":                  `(2)`,
+			"FuncSelectExprReturn":              `(string)`,
+			"FuncWillCall":                      `(2, github.com/octohelm/gengo/testdata/a.String)`,
+			"FuncReturnWithCallDirectly":        `(2, github.com/octohelm/gengo/testdata/a.String)`,
+			"FuncWithNamedReturn":               `(2, github.com/octohelm/gengo/testdata/a.String)`,
+			"FuncSingleNamedReturnByAssign":     `("1", "2", *github.com/pkg/errors.fundamental)`,
+			"FunWithSwitch":                     `("a1" | "a2" | "a3", "b1" | "b2" | "b3")`,
+			"FuncWithIf":                        `("a0" | "a1" | string)`,
+			"FuncCallReturnAssign":              `(2, github.com/octohelm/gengo/testdata/a.String)`,
+			"FuncCallWithFuncLit":               `(1, "s")`,
+			"FuncWithImportedCall":              `(int)`,
+			"FuncCurryCall":                     `(int)`,
 		}
 
 		for k, r := range funcResults {

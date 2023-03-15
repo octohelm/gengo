@@ -148,9 +148,20 @@ func (pi *pkgInfo) resolveFuncResults(s *types.Signature) (finalFuncResults Resu
 			}
 			return
 		}
+	} else {
+		// interface without ast found
+		r := s.Results()
+
+		finalFuncResults = make(Results, r.Len())
+		for i := 0; i < r.Len(); i++ {
+			finalFuncResults[i] = append(finalFuncResults[i], TypeAndValue{
+				Type: r.At(i).Type(),
+				At:   i,
+			})
+		}
 	}
 
-	return nil
+	return
 }
 
 func (pi *pkgInfo) funcResultsFrom(s *types.Signature, funcType *ast.FuncType, body *ast.BlockStmt) (finalFuncResults Results) {

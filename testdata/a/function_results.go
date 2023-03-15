@@ -49,6 +49,10 @@ func FuncReturnWithInterfaceCall() (a any, err error) {
 	return InterfaceType(nil).Multiple()
 }
 
+func FuncReturnWithInterfaceCallSingle() (a any) {
+	return InterfaceType(nil).Single()
+}
+
 func FuncReturnWithCallDirectly() (a any, b String) {
 	return FuncWillCall()
 }
