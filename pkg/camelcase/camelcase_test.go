@@ -1,9 +1,13 @@
 package camelcase
 
-import "fmt"
+import (
+	"fmt"
+	"reflect"
+	"testing"
+)
 
 func ExampleCases() {
-	s := "vimRPCPlugin"
+	s := "vimRPCPluginS3"
 	fmt.Println(UpperCamelCase(s))
 	fmt.Println(LowerCamelCase(s))
 	fmt.Println(UpperKebabCase(s))
@@ -11,53 +15,42 @@ func ExampleCases() {
 	fmt.Println(UpperSnakeCase(s))
 	fmt.Println(LowerSnakeCase(s))
 	// Output:
-	// VimRpcPlugin
-	// vimRpcPlugin
-	// VIM-RPC-PLUGIN
-	// vim-rpc-plugin
-	// VIM_RPC_PLUGIN
-	// vim_rpc_plugin
+	// VimRpcPluginS3
+	// vimRpcPluginS3
+	// VIM-RPC-PLUGIN-S3
+	// vim-rpc-plugin-s3
+	// VIM_RPC_PLUGIN_S3
+	// vim_rpc_plugin_s3
 }
 
-func ExampleSplit() {
-	for _, c := range []string{
-		"",
-		"lowercase",
-		"Class",
-		"MyClass",
-		"MyC",
-		"HTML",
-		"PDFLoader",
-		"AString",
-		"SimpleXMLParser",
-		"vimRPCPlugin",
-		"GL11Version",
-		"99Bottles",
-		"May5",
-		"BFG9000",
-		"BöseÜberraschung",
-		"Two  spaces",
-		"BadUTF8\xe2\xe2\xa1",
+func TestSplit(t *testing.T) {
+	for _, c := range [][]string{
+		{""},
+		{"S3", "S3"},
+		{"lowercase", "lowercase"},
+		{"Class", "Class"},
+		{"MyClass", "My", "Class"},
+		{"MyC", "My", "C"},
+		{"HTML", "HTML"},
+		{"PDFLoader", "PDF", "Loader"},
+		{"AString", "A", "String"},
+		{"SimpleXMLParser", "Simple", "XML", "Parser"},
+		{"vimRPCPlugin", "vim", "RPC", "Plugin"},
+		{"GL11Version", "GL11", "Version"},
+		{"99Bottles", "99", "Bottles"},
+		{"May5", "May5"},
+		{"BFG9000", "BFG9000"},
+		{"BöseÜberraschung", "Böse", "Überraschung"},
+		{"Two  spaces", "Two", "  ", "spaces"},
+		{"BadUTF8\xe2\xe2\xa1", "BadUTF8\xe2\xe2\xa1"},
 	} {
-		fmt.Printf("%#v => %#v\n", c, Split(c))
-	}
+		t.Run(c[0], func(t *testing.T) {
+			ret := Split(c[0])
+			expect := c[1:]
 
-	// Output:
-	// "" => []string{}
-	// "lowercase" => []string{"lowercase"}
-	// "Class" => []string{"Class"}
-	// "MyClass" => []string{"My", "Class"}
-	// "MyC" => []string{"My", "C"}
-	// "HTML" => []string{"HTML"}
-	// "PDFLoader" => []string{"PDF", "Loader"}
-	// "AString" => []string{"A", "String"}
-	// "SimpleXMLParser" => []string{"Simple", "XML", "Parser"}
-	// "vimRPCPlugin" => []string{"vim", "RPC", "Plugin"}
-	// "GL11Version" => []string{"GL", "11", "Version"}
-	// "99Bottles" => []string{"99", "Bottles"}
-	// "May5" => []string{"May", "5"}
-	// "BFG9000" => []string{"BFG", "9000"}
-	// "BöseÜberraschung" => []string{"Böse", "Überraschung"}
-	// "Two  spaces" => []string{"Two", "  ", "spaces"}
-	// "BadUTF8\xe2\xe2\xa1" => []string{"BadUTF8\xe2\xe2\xa1"}
+			if !reflect.DeepEqual(ret, expect) {
+				t.Fatalf("expect %v, but got %v", expect, ret)
+			}
+		})
+	}
 }
