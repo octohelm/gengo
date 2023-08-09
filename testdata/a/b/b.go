@@ -1,6 +1,8 @@
 package b
 
-import "golang.org/x/tools/go/vcs"
+import (
+	"golang.org/x/mod/module"
+)
 
 // B is a type for testing
 type B string
@@ -17,4 +19,4 @@ type SubObj struct {
 	Age int
 }
 
-type Third vcs.RepoRoot
+type Third module.Version

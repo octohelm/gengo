@@ -58,16 +58,20 @@ func (v SubObj) RuntimeDoc(names ...string) ([]string, bool) {
 func (v Third) RuntimeDoc(names ...string) ([]string, bool) {
 	if len(names) > 0 {
 		switch names[0] {
-		case "VCS":
-			return []string{}, true
-		case "Repo":
+		case "Path":
 			return []string{
-				"Repo is the repository URL, including scheme.",
+				"Path is a module path, like \"golang.org/x/text\" or \"rsc.io/quote/v2\".",
 			}, true
-		case "Root":
+		case "Version":
 			return []string{
-				"Root is the import path corresponding to the root of the",
-				"repository.",
+				"Version is usually a semantic version in canonical form.",
+				"There are three exceptions to this general rule.",
+				"First, the top-level target of a build has no specific version",
+				"and uses Version = \"\".",
+				"Second, during MVS calculations the version \"none\" is used",
+				"to represent the decision to take no version of a given module.",
+				"Third, filesystem paths found in \"replace\" directives are",
+				"represented by a path with an empty version.",
 			}, true
 
 		}
