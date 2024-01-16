@@ -4,6 +4,37 @@ DON'T EDIT THIS FILE
 */
 package c
 
+func (in *DigestMeta) DeepCopy() *DigestMeta {
+	if in == nil {
+		return nil
+	}
+	out := new(DigestMeta)
+	in.DeepCopyInto(out)
+	return out
+}
+
+func (in *DigestMeta) DeepCopyInto(out *DigestMeta) {
+	out.Type = in.Type
+	out.Digest = in.Digest
+	out.Name = in.Name
+	in.Size.DeepCopyInto(&out.Size)
+	out.Tag = in.Tag
+	out.Platform = in.Platform
+
+}
+func (in *FileSize) DeepCopy() *FileSize {
+	if in == nil {
+		return nil
+	}
+
+	out := new(FileSize)
+	in.DeepCopyInto(out)
+	return out
+}
+
+func (in *FileSize) DeepCopyInto(out *FileSize) {
+	*out = *in
+}
 func (in *KubePkg) DeepCopyObject() Object {
 	if c := in.DeepCopy(); c != nil {
 		return c
@@ -23,5 +54,56 @@ func (in *KubePkg) DeepCopy() *KubePkg {
 func (in *KubePkg) DeepCopyInto(out *KubePkg) {
 	in.Spec.DeepCopyInto(&out.Spec)
 	in.Status.DeepCopyInto(&out.Status)
+
+}
+func (in *KubePkgSpec) DeepCopy() *KubePkgSpec {
+	if in == nil {
+		return nil
+	}
+	out := new(KubePkgSpec)
+	in.DeepCopyInto(out)
+	return out
+}
+
+func (in *KubePkgSpec) DeepCopyInto(out *KubePkgSpec) {
+	out.Version = in.Version
+	if in.Images != nil {
+		i, o := &in.Images, &out.Images
+		*o = make(map[string]string, len(*i))
+		for key, val := range *i {
+			(*o)[key] = val
+		}
+	}
+	if in.Manifests != nil {
+		i, o := &in.Manifests, &out.Manifests
+		*o = make(map[string]interface{}, len(*i))
+		for key, val := range *i {
+			(*o)[key] = val
+		}
+	}
+
+}
+func (in *KubePkgStatus) DeepCopy() *KubePkgStatus {
+	if in == nil {
+		return nil
+	}
+	out := new(KubePkgStatus)
+	in.DeepCopyInto(out)
+	return out
+}
+
+func (in *KubePkgStatus) DeepCopyInto(out *KubePkgStatus) {
+	if in.Statuses != nil {
+		i, o := &in.Statuses, &out.Statuses
+		*o = make(map[string]interface{}, len(*i))
+		for key, val := range *i {
+			(*o)[key] = val
+		}
+	}
+	if in.Digests != nil {
+		i, o := &in.Digests, &out.Digests
+		*o = make([]DigestMeta, len(*i))
+		copy(*o, *i)
+	}
 
 }

@@ -22,9 +22,3 @@ func (v *KubePkgSpec) SetDefault() {
 func (v *KubePkgStatus) SetDefault() {
 	// TODO
 }
-func (v *Manifests) SetDefault() {
-	// TODO
-}
-func (v *Statuses) SetDefault() {
-	// TODO
-}

@@ -7,6 +7,9 @@ package b
 func (v *B) SetDefault() {
 	// TODO
 }
+func (v *List[T]) SetDefault() {
+	// TODO
+}
 func (v *Obj) SetDefault() {
 	// TODO
 }

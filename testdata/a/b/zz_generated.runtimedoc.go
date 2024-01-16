@@ -19,6 +19,21 @@ func (B) RuntimeDoc(names ...string) ([]string, bool) {
 		"B is a type for testing",
 	}, true
 }
+func (v List[T]) RuntimeDoc(names ...string) ([]string, bool) {
+	if len(names) > 0 {
+		switch names[0] {
+		case "Name":
+			return []string{
+				"Name",
+			}, true
+
+		}
+
+		return nil, false
+	}
+	return []string{}, true
+}
+
 func (v Obj) RuntimeDoc(names ...string) ([]string, bool) {
 	if len(names) > 0 {
 		switch names[0] {

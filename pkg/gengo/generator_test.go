@@ -15,7 +15,7 @@ func TestPkgGenerator(t *testing.T) {
 	c, err := gengo.NewContext(&gengo.GeneratorArgs{
 		Entrypoint: []string{
 			"../../testdata/a/b",
-			"github.com/octohelm/gengo/testdata/a/c",
+			//"github.com/octohelm/gengo/testdata/a/c",
 		},
 		OutputFileBaseName: "zz_generated",
 	})

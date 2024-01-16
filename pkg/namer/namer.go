@@ -2,6 +2,8 @@ package namer
 
 import (
 	gengotypes "github.com/octohelm/gengo/pkg/types"
+	"go/types"
+	"strings"
 )
 
 type Namer interface {
@@ -32,15 +34,34 @@ func (n *rawNamer) Name(typeName gengotypes.TypeName) string {
 	}
 
 	pkgPath := typeName.Pkg().Path()
+	tn := &strings.Builder{}
+	tn.WriteString(typeName.Name())
+
+	if x, ok := typeName.(*types.TypeName); ok {
+		if named, ok := x.Type().(*types.Named); ok {
+			if p := named.TypeParams(); p != nil {
+				tn.WriteString("[")
+
+				for i := 0; i < p.Len(); i++ {
+					if i > 0 {
+						tn.WriteString(",")
+					}
+					tn.WriteString(p.At(i).String())
+				}
+
+				tn.WriteString("]")
+			}
+		}
+	}
 
 	if pkgPath == n.pkgPath {
-		name := typeName.Name()
-		if name != "" {
-			return name
+		if tn.Len() != 0 {
+			return tn.String()
 		}
 		return typeName.String()
 	} else {
 		n.tracker.AddType(typeName)
-		return n.tracker.LocalNameOf(pkgPath) + "." + typeName.Name()
+
+		return n.tracker.LocalNameOf(pkgPath) + "." + tn.String()
 	}
 }

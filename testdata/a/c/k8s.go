@@ -18,6 +18,7 @@ type KubePkg struct {
 	Status KubePkgStatus `json:"status,omitempty"`
 }
 
+// +gengo:deepcopy
 type KubePkgSpec struct {
 	// app 版本
 	Version string `json:"version"`
@@ -28,15 +29,17 @@ type KubePkgSpec struct {
 	Manifests Manifests `json:"manifests,omitempty"`
 }
 
-type Manifests map[string]any
+type Manifests = map[string]any
 
+// +gengo:deepcopy
 type KubePkgStatus struct {
 	Statuses Statuses     `json:"statuses,omitempty"`
 	Digests  []DigestMeta `json:"digests,omitempty"`
 }
 
-type Statuses map[string]any
+type Statuses = map[string]any
 
+// +gengo:deepcopy
 type DigestMeta struct {
 	Type     string   `json:"type"`
 	Digest   string   `json:"digest"`
@@ -46,6 +49,7 @@ type DigestMeta struct {
 	Platform string   `json:"platform,omitempty"`
 }
 
+// +gengo:deepcopy
 type FileSize int64
 
 func (f FileSize) String() string {
