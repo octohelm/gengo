@@ -5,9 +5,13 @@ import (
 	"fmt"
 	"go/token"
 	"go/types"
+	"golang.org/x/sync/errgroup"
+	"log/slog"
 	"reflect"
 	"sort"
 	"strings"
+	"sync"
+	"time"
 
 	reflectx "github.com/octohelm/x/reflect"
 
@@ -79,6 +83,9 @@ func (c *context) Execute(ctx corecontext.Context, generators ...Generator) erro
 }
 
 func (c *context) pkgExecute(ctx corecontext.Context, pkg string, generators ...Generator) error {
+	ctx, l := logr.FromContext(ctx).Start(ctx, pkg)
+	defer l.End()
+
 	p, ok := c.universe[pkg]
 	if !ok {
 		return errors.Errorf("invalid pkg `%s`", pkg)
@@ -100,35 +107,46 @@ func (c *context) pkgExecute(ctx corecontext.Context, pkg string, generators ...
 		}
 	}
 
-	gfs := genfiles{}
+	gfs := sync.Map{}
+
+	eg := &errgroup.Group{}
 
 	for i := range generators {
-		pkgCtxForGen := &context{
-			args:     pkgCtx.args,
-			universe: pkgCtx.universe,
-			pkg:      pkgCtx.pkg,
-			pkgTags:  pkgCtx.pkgTags,
-			genfile:  newGenfile(),
-		}
+		eg.Go(func() error {
+			pkgCtxForGen := &context{
+				args:     pkgCtx.args,
+				universe: pkgCtx.universe,
+				pkg:      pkgCtx.pkg,
+				pkgTags:  pkgCtx.pkgTags,
+				genfile:  newGenfile(),
+			}
 
-		if err := pkgCtxForGen.genfile.InitWith(pkgCtxForGen); err != nil {
-			return err
-		}
+			if err := pkgCtxForGen.genfile.InitWith(pkgCtxForGen); err != nil {
+				return err
+			}
 
-		g := pkgCtxForGen.New(generators[i])
+			g := pkgCtxForGen.New(generators[i])
 
-		pkgCtxForGen.genfile.generator = g
-		pkgCtxForGen.l = logr.FromContext(ctx).WithValues("gengo", g.Name())
+			pkgCtxForGen.genfile.generator = g
+			pkgCtxForGen.l = logr.FromContext(ctx).WithValues("gengo", g.Name())
 
-		gfs[g.Name()] = pkgCtxForGen.genfile
+			if e := pkgCtxForGen.doGenerate(ctx, g); e != nil {
 
-		if e := pkgCtxForGen.doGenerate(ctx, g); e != nil {
-			return errors.Wrapf(e, "`%s` generate failed for %s", g.Name(), pkgCtx.pkg.Pkg().Path())
-		}
+				return errors.Wrapf(e, "`%s` generate failed for %s", g.Name(), pkgCtx.pkg.Pkg().Path())
+			}
+
+			gfs.Store(g.Name(), pkgCtxForGen.genfile)
+
+			return nil
+		})
 	}
 
-	for _, w := range gfs {
-		if err := w.WriteToFile(pkgCtx, c.args); err != nil {
+	if err := eg.Wait(); err != nil {
+		return err
+	}
+
+	for _, w := range gfs.Range {
+		if err := w.(*genfile).WriteToFile(pkgCtx, c.args); err != nil {
 			return err
 		}
 	}
@@ -184,6 +202,8 @@ func (c *context) doGenerate(ctx corecontext.Context, g Generator) error {
 			tags, _ := c.Doc(named.Obj())
 
 			if IsGeneratorEnabled(g, tags) {
+				stared := time.Now()
+
 				if err := g.GenerateType(c, named); err != nil {
 					if errors.Is(err, ErrSkip) {
 						continue
@@ -194,7 +214,9 @@ func (c *context) doGenerate(ctx corecontext.Context, g Generator) error {
 					}
 					return err
 				} else {
-					logr.FromContext(ctx).Debug(fmt.Sprintf("generate `%s` for %s.", g.Name(), named))
+					logr.FromContext(ctx).WithValues(
+						slog.String("cost", time.Since(stared).String()),
+					).Debug(fmt.Sprintf("generate `%s` for %s.", g.Name(), named))
 				}
 			}
 		}
