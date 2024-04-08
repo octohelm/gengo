@@ -4,10 +4,10 @@ import (
 	"go/ast"
 	"go/token"
 	"go/types"
+	"golang.org/x/tools/go/packages"
 	"path/filepath"
 	"strings"
-
-	"golang.org/x/tools/go/packages"
+	"sync"
 )
 
 type Module struct {
@@ -70,9 +70,8 @@ func newPkg(pkg *packages.Package, u Universe) Package {
 		endLineToCommentGroup:         map[fileLine]*ast.CommentGroup{},
 		endLineToTrailingCommentGroup: map[fileLine]*ast.CommentGroup{},
 
-		signatures:  map[*types.Signature]ast.Node{},
-		funcDecls:   map[*types.Func]ast.Node{},
-		funcResults: map[*types.Signature][]TypeAndValues{},
+		signatures: map[*types.Signature]ast.Node{},
+		funcDecls:  map[*types.Func]ast.Node{},
 
 		constants: map[string]*types.Const{},
 		types:     map[string]*types.TypeName{},
@@ -235,9 +234,11 @@ type pkgInfo struct {
 	endLineToCommentGroup         map[fileLine]*ast.CommentGroup
 	endLineToTrailingCommentGroup map[fileLine]*ast.CommentGroup
 
-	funcResults map[*types.Signature][]TypeAndValues
-	signatures  map[*types.Signature]ast.Node
-	funcDecls   map[*types.Func]ast.Node
+	funcDecls  map[*types.Func]ast.Node
+	signatures map[*types.Signature]ast.Node
+
+	funcResults         sync.Map
+	funcResultResolvers sync.Map
 }
 
 func (pi *pkgInfo) SourceDir() string {

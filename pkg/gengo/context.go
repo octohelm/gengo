@@ -108,7 +108,6 @@ func (c *context) pkgExecute(ctx corecontext.Context, pkg string, generators ...
 	}
 
 	gfs := sync.Map{}
-
 	eg := &errgroup.Group{}
 
 	for i := range generators {
@@ -131,7 +130,6 @@ func (c *context) pkgExecute(ctx corecontext.Context, pkg string, generators ...
 			pkgCtxForGen.l = logr.FromContext(ctx).WithValues("gengo", g.Name())
 
 			if e := pkgCtxForGen.doGenerate(ctx, g); e != nil {
-
 				return errors.Wrapf(e, "`%s` generate failed for %s", g.Name(), pkgCtx.pkg.Pkg().Path())
 			}
 

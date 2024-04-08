@@ -17,8 +17,6 @@ import (
 	"github.com/octohelm/gengo/pkg/namer"
 )
 
-type genfiles map[string]*genfile
-
 func newGenfile() *genfile {
 	return &genfile{
 		imports: namer.NewDefaultImportTracker(),

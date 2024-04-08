@@ -5,6 +5,7 @@ import (
 	"go/ast"
 	"go/constant"
 	"go/types"
+	"sync"
 )
 
 type Results []TypeAndValues
@@ -101,16 +102,6 @@ func (pi *pkgInfo) ResultsOf(typeFunc *types.Func) (Results, int) {
 }
 
 func (pi *pkgInfo) resolveFuncResults(s *types.Signature) (finalFuncResults Results) {
-	if r, ok := pi.funcResults[s]; ok {
-		return r
-	}
-
-	// registry before process to avoid stackoverflow
-	pi.funcResults[s] = finalFuncResults
-	defer func() {
-		pi.funcResults[s] = finalFuncResults
-	}()
-
 	resultTypes := s.Results()
 	n := resultTypes.Len()
 
@@ -161,136 +152,157 @@ func (pi *pkgInfo) resolveFuncResults(s *types.Signature) (finalFuncResults Resu
 		}
 	}
 
-	return
+	return nil
 }
 
-func (pi *pkgInfo) funcResultsFrom(s *types.Signature, funcType *ast.FuncType, body *ast.BlockStmt) (finalFuncResults Results) {
-	n := s.Results().Len()
-	finalFuncResults = make(Results, n)
-
-	if funcType == nil || body == nil {
+func (pi *pkgInfo) funcResultsFrom(s *types.Signature, funcType *ast.FuncType, body *ast.BlockStmt) Results {
+	if funcType == nil {
 		return nil
 	}
 
-	namedResults := make([]*ast.Ident, 0)
-
-	for _, field := range funcType.Results.List {
-		namedResults = append(namedResults, field.Names...)
-	}
-
-	variableLatestAssigns := map[*ast.Object]TypeAndValue{}
-
-	assign := func(o *ast.Object, rhs []ast.Expr, n int, i int) {
-		if len(rhs) == n {
-			variableLatestAssigns[o] = TypeAndValue{Expr: rhs[i]}
-		} else {
-			variableLatestAssigns[o] = TypeAndValue{Expr: rhs[0], At: i}
+	if v, ok := pi.funcResults.Load(funcType); ok {
+		if v != nil {
+			return v.(Results)
 		}
 	}
 
-	var typeAndValueOf func(at int, expr ast.Expr) TypeAndValue
+	get, _ := pi.funcResultResolvers.LoadOrStore(funcType, sync.OnceValue(func() (finalFuncResults Results) {
+		// avoid loop
+		pi.funcResults.Store(funcType, finalFuncResults)
 
-	typeAndValueOf = func(at int, expr ast.Expr) (final TypeAndValue) {
-		switch x := expr.(type) {
-		case *ast.Ident:
-			if x.Obj != nil {
-				if tve, ok := variableLatestAssigns[x.Obj]; ok {
-					return typeAndValueOf(tve.At, tve.Expr)
+		defer func() {
+			pi.funcResults.Store(funcType, finalFuncResults)
+		}()
+
+		n := s.Results().Len()
+		finalFuncResults = make(Results, n)
+
+		if funcType == nil || body == nil {
+			return nil
+		}
+
+		namedResults := make([]*ast.Ident, 0)
+
+		for _, field := range funcType.Results.List {
+			namedResults = append(namedResults, field.Names...)
+		}
+
+		variableLatestAssigns := map[*ast.Object]TypeAndValue{}
+
+		assign := func(o *ast.Object, rhs []ast.Expr, n int, i int) {
+			if len(rhs) == n {
+				variableLatestAssigns[o] = TypeAndValue{Expr: rhs[i]}
+			} else {
+				variableLatestAssigns[o] = TypeAndValue{Expr: rhs[0], At: i}
+			}
+		}
+
+		var typeAndValueOf func(at int, expr ast.Expr) TypeAndValue
+
+		typeAndValueOf = func(at int, expr ast.Expr) (final TypeAndValue) {
+			switch x := expr.(type) {
+			case *ast.Ident:
+				if x.Obj != nil {
+					if tve, ok := variableLatestAssigns[x.Obj]; ok {
+						return typeAndValueOf(tve.At, tve.Expr)
+					}
+				}
+			case *ast.SelectorExpr:
+				if x.Sel.Obj != nil {
+					if tve, ok := variableLatestAssigns[x.Sel.Obj]; ok {
+						return typeAndValueOf(tve.At, tve.Expr)
+					}
+				}
+			case *ast.CallExpr:
+				switch callX := pi.Package.TypesInfo.TypeOf(x.Fun).(type) {
+				case *types.Signature:
+					final.At = at
+					final.Expr = expr
+
+					rets := callX.Results()
+					shouldDeepResolve := false
+
+					for i := 0; i < rets.Len(); i++ {
+						t := rets.At(i).Type()
+
+						switch t.String() {
+						case "error", "any", "interface{}":
+							shouldDeepResolve = true
+						}
+					}
+
+					if final.At < rets.Len() {
+						final.Type = rets.At(final.At).Type()
+					} else {
+						final.Type = rets.At(0).Type()
+					}
+
+					if shouldDeepResolve {
+						final.From = pi.resolveFuncResults(callX)
+					}
+
+					return final
 				}
 			}
-		case *ast.SelectorExpr:
-			if x.Sel.Obj != nil {
-				if tve, ok := variableLatestAssigns[x.Sel.Obj]; ok {
-					return typeAndValueOf(tve.At, tve.Expr)
+
+			tv, _ := pi.Eval(expr)
+
+			final.Type = tv.Type
+			final.Value = tv.Value
+			final.At = at
+			final.Expr = expr
+
+			return
+		}
+
+		ast.Inspect(body, func(node ast.Node) bool {
+			switch x := node.(type) {
+			case *ast.FuncLit:
+				// skip func lit
+				return false
+			case *ast.AssignStmt:
+				// set var by code flow
+				// not support side effect assign
+				for i := range x.Lhs {
+					switch lhs := x.Lhs[i].(type) {
+					// assign to variable
+					case *ast.Ident:
+						if lhs.Obj != nil {
+							assign(lhs.Obj, x.Rhs, len(x.Lhs), i)
+						}
+					// assign to field
+					case *ast.SelectorExpr:
+						if lhs.Sel != nil {
+							assign(lhs.Sel.Obj, x.Rhs, len(x.Lhs), i)
+						}
+					}
 				}
-			}
-		case *ast.CallExpr:
-			switch callX := pi.Package.TypesInfo.TypeOf(x.Fun).(type) {
-			case *types.Signature:
-				final.At = at
-				final.Expr = expr
+			case *ast.ReturnStmt:
+				results := x.Results
 
-				rets := callX.Results()
-				shouldDeepResolve := false
+				// fill return resolveFuncResults by named resolveFuncResults
+				if x.Results == nil {
+					results = make([]ast.Expr, n)
 
-				for i := 0; i < rets.Len(); i++ {
-					t := rets.At(i).Type()
-
-					switch t.String() {
-					case "error", "any", "interface{}":
-						shouldDeepResolve = true
+					for i := range namedResults {
+						results[i] = namedResults[i]
 					}
 				}
 
-				if final.At < rets.Len() {
-					final.Type = rets.At(final.At).Type()
-				} else {
-					final.Type = rets.At(0).Type()
+				for at := 0; at < n; at++ {
+					if len(results) == n {
+						finalFuncResults[at] = append(finalFuncResults[at], typeAndValueOf(at, results[at]))
+					} else {
+						finalFuncResults[at] = append(finalFuncResults[at], typeAndValueOf(at, results[0]))
+					}
 				}
-
-				if shouldDeepResolve {
-					final.From = pi.resolveFuncResults(callX)
-				}
-
-				return final
 			}
-		}
 
-		tv, _ := pi.Eval(expr)
-
-		final.Type = tv.Type
-		final.Value = tv.Value
-		final.At = at
-		final.Expr = expr
+			return true
+		})
 
 		return
-	}
+	}))
 
-	ast.Inspect(body, func(node ast.Node) bool {
-		switch x := node.(type) {
-		case *ast.FuncLit:
-			// skip func lit
-			return false
-		case *ast.AssignStmt:
-			// set var by code flow
-			// not support side effect assign
-			for i := range x.Lhs {
-				switch lhs := x.Lhs[i].(type) {
-				// assign to variable
-				case *ast.Ident:
-					if lhs.Obj != nil {
-						assign(lhs.Obj, x.Rhs, len(x.Lhs), i)
-					}
-				// assign to field
-				case *ast.SelectorExpr:
-					if lhs.Sel != nil {
-						assign(lhs.Sel.Obj, x.Rhs, len(x.Lhs), i)
-					}
-				}
-			}
-		case *ast.ReturnStmt:
-			results := x.Results
-
-			// fill return resolveFuncResults by named resolveFuncResults
-			if x.Results == nil {
-				results = make([]ast.Expr, n)
-
-				for i := range namedResults {
-					results[i] = namedResults[i]
-				}
-			}
-
-			for at := 0; at < n; at++ {
-				if len(results) == n {
-					finalFuncResults[at] = append(finalFuncResults[at], typeAndValueOf(at, results[at]))
-				} else {
-					finalFuncResults[at] = append(finalFuncResults[at], typeAndValueOf(at, results[0]))
-				}
-			}
-		}
-
-		return true
-	})
-
-	return
+	return get.(func() Results)()
 }
