@@ -2,7 +2,7 @@ package gengo
 
 import (
 	corecontext "context"
-	"fmt"
+	reflectx "github.com/octohelm/x/reflect"
 	"go/token"
 	"go/types"
 	"golang.org/x/sync/errgroup"
@@ -11,9 +11,6 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"time"
-
-	reflectx "github.com/octohelm/x/reflect"
 
 	"github.com/go-courier/logr"
 	gengotypes "github.com/octohelm/gengo/pkg/types"
@@ -200,21 +197,26 @@ func (c *context) doGenerate(ctx corecontext.Context, g Generator) error {
 			tags, _ := c.Doc(named.Obj())
 
 			if IsGeneratorEnabled(g, tags) {
-				stared := time.Now()
+				if err := func() error {
+					_, l := logr.FromContext(ctx).WithValues(slog.String("target", named.String())).Start(ctx, g.Name())
+					defer l.End()
 
-				if err := g.GenerateType(c, named); err != nil {
-					if errors.Is(err, ErrSkip) {
-						continue
+					if err := g.GenerateType(c, named); err != nil {
+						if errors.Is(err, ErrSkip) {
+							return nil
+						}
+						if errors.Is(err, ErrIgnore) {
+							l.Warn(err)
+							return nil
+						}
+						return err
 					}
-					if errors.Is(err, ErrIgnore) {
-						logr.FromContext(ctx).Warn(err)
-						return nil
-					}
+
+					l.Debug("generated.")
+
+					return nil
+				}(); err != nil {
 					return err
-				} else {
-					logr.FromContext(ctx).WithValues(
-						slog.String("cost", time.Since(stared).String()),
-					).Debug(fmt.Sprintf("generate `%s` for %s.", g.Name(), named))
 				}
 			}
 		}
