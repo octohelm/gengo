@@ -1,10 +1,11 @@
 package runtimedocgen
 
 import (
-	"github.com/octohelm/gengo/pkg/gengo"
-	"github.com/pkg/errors"
 	"go/ast"
 	"go/types"
+
+	"github.com/octohelm/gengo/pkg/gengo"
+	"github.com/pkg/errors"
 )
 
 func init() {

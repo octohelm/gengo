@@ -4,10 +4,11 @@ import (
 	"go/ast"
 	"go/token"
 	"go/types"
-	"golang.org/x/tools/go/packages"
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"golang.org/x/tools/go/packages"
 )
 
 type Module struct {
@@ -26,14 +27,14 @@ type Package interface {
 	SourceDir() string
 	// Files ast files of package
 	Files() []*ast.File
+	// Decl ast Decl for pos
+	Decl(pos token.Pos) ast.Decl
 	// Doc comment tags and leading comments for pos
 	Doc(pos token.Pos) (map[string][]string, []string)
 	// Comment trailing comments for pos
 	Comment(pos token.Pos) []string
-
 	// Eval eval expr in package
 	Eval(expr ast.Expr) (types.TypeAndValue, error)
-
 	// Constant get constant by name
 	Constant(name string) *types.Const
 	// Constants get all constants of package
@@ -318,6 +319,26 @@ func (pi *pkgInfo) MethodsOf(n *types.Named, ptr bool) []*types.Func {
 
 func (pi *pkgInfo) Position(pos token.Pos) token.Position {
 	return pi.Package.Fset.Position(pos)
+}
+
+func (pi *pkgInfo) Decl(pos token.Pos) ast.Decl {
+	if f := pi.File(pos); f != nil {
+		for _, d := range f.Decls {
+			if d.Pos() <= pos && pos <= d.End() {
+				return d
+			}
+		}
+	}
+	return nil
+}
+
+func (pi *pkgInfo) File(pos token.Pos) *ast.File {
+	for _, f := range pi.Files() {
+		if f.Pos() <= pos && pos <= f.End() {
+			return f
+		}
+	}
+	return nil
 }
 
 func (pi *pkgInfo) Doc(pos token.Pos) (map[string][]string, []string) {

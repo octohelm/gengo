@@ -6,7 +6,6 @@ cover:
 
 fmt:
 	goimports -l -w .
-	gofmt -l -w .
 
 dep:
 	go get -u ./...

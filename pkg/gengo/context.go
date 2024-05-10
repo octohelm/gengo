@@ -2,15 +2,16 @@ package gengo
 
 import (
 	corecontext "context"
-	reflectx "github.com/octohelm/x/reflect"
 	"go/token"
 	"go/types"
-	"golang.org/x/sync/errgroup"
 	"log/slog"
 	"reflect"
 	"sort"
 	"strings"
 	"sync"
+
+	reflectx "github.com/octohelm/x/reflect"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/go-courier/logr"
 	gengotypes "github.com/octohelm/gengo/pkg/types"
