@@ -16,15 +16,19 @@ var (
 )
 
 func ImportGoPath(importPath string) string {
-	parts := strings.Split(importPath, "/vendor/")
-	return parts[len(parts)-1]
+	i := strings.LastIndex(importPath, "/vendor/")
+	if i > 0 {
+		return importPath[i:]
+	}
+	return importPath
 }
 
 func PkgImportPathAndExpose(s string) (string, string) {
-	args := strings.Split(s, ".")
-	lenOfArgs := len(args)
-	if lenOfArgs > 1 {
-		return ImportGoPath(strings.Join(args[0:lenOfArgs-1], ".")), args[lenOfArgs-1]
+	if i := strings.Index(s, "["); i > 0 {
+		s = s[0:i]
+	}
+	if i := strings.LastIndex(s, "."); i > 0 {
+		return ImportGoPath(s[0:i]), s[i+1:]
 	}
 	return "", s
 }

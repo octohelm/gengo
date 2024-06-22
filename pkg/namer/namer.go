@@ -1,10 +1,9 @@
 package namer
 
 import (
+	gengotypes "github.com/octohelm/gengo/pkg/types"
 	"go/types"
 	"strings"
-
-	gengotypes "github.com/octohelm/gengo/pkg/types"
 )
 
 type Namer interface {
@@ -36,7 +35,8 @@ func (n *rawNamer) Name(typeName gengotypes.TypeName) string {
 
 	pkgPath := typeName.Pkg().Path()
 	tn := &strings.Builder{}
-	tn.WriteString(typeName.Name())
+
+	tn.WriteString(n.processName(typeName.Name()))
 
 	if x, ok := typeName.(*types.TypeName); ok {
 		if named, ok := x.Type().(*types.Named); ok {
@@ -62,7 +62,32 @@ func (n *rawNamer) Name(typeName gengotypes.TypeName) string {
 		return typeName.String()
 	} else {
 		n.tracker.AddType(typeName)
-
 		return n.tracker.LocalNameOf(pkgPath) + "." + tn.String()
 	}
+}
+
+func (n *rawNamer) processName(name string) string {
+	t, err := gengotypes.ParseTypeRef(name)
+	if err != nil {
+		panic(err)
+	}
+
+	if len(t.TypeList) == 0 {
+		return t.Name
+	}
+
+	for x := range t.Walk {
+		if x.PkgPath == "" {
+			continue
+		}
+
+		if x.PkgPath == n.pkgPath {
+			x.PkgPath = ""
+		} else {
+			n.tracker.AddType(gengotypes.Ref(x.PkgPath, x.Name))
+			x.PkgPath = n.tracker.LocalNameOf(x.PkgPath)
+		}
+	}
+
+	return t.String()
 }

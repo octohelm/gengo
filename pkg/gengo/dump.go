@@ -75,6 +75,8 @@ func (d *Dumper) TypeLit(tpe typesutil.Type) string {
 		return fmt.Sprintf("[]%s", d.TypeLit(tpe.Elem()))
 	case reflect.Map:
 		return fmt.Sprintf("map[%s]%s", d.TypeLit(tpe.Key()), d.TypeLit(tpe.Elem()))
+	case reflect.Interface:
+		return "any"
 	default:
 		return tpe.String()
 	}

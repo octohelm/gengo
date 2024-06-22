@@ -76,7 +76,7 @@ func (in *KubePkgSpec) DeepCopyInto(out *KubePkgSpec) {
 	}
 	if in.Manifests != nil {
 		i, o := &in.Manifests, &out.Manifests
-		*o = make(map[string]interface{}, len(*i))
+		*o = make(map[string]any, len(*i))
 		for key, val := range *i {
 			(*o)[key] = val
 		}
@@ -95,7 +95,7 @@ func (in *KubePkgStatus) DeepCopy() *KubePkgStatus {
 func (in *KubePkgStatus) DeepCopyInto(out *KubePkgStatus) {
 	if in.Statuses != nil {
 		i, o := &in.Statuses, &out.Statuses
-		*o = make(map[string]interface{}, len(*i))
+		*o = make(map[string]any, len(*i))
 		for key, val := range *i {
 			(*o)[key] = val
 		}

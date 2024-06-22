@@ -4,8 +4,8 @@ go 1.22
 
 require (
 	github.com/go-courier/logr v0.3.0
-	github.com/octohelm/x v0.0.0-20240507072036-923e675e18dc
-	github.com/onsi/gomega v1.33.0
+	github.com/octohelm/x v0.0.0-20240622073357-3fcb5294a9e0
+	github.com/onsi/gomega v1.33.1
 	github.com/pkg/errors v0.9.1
 	golang.org/x/sync v0.7.0
 	golang.org/x/text v0.15.0
