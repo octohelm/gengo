@@ -31,11 +31,11 @@ func TestDumper_TypeLit(t *testing.T) {
 
 	t.Run("TypeListWithGenerics", func(t *testing.T) {
 		testingx.Expect(t,
-			"*github_com_octohelm_gengo_pkg_gengo.List[github_com_octohelm_gengo_pkg_gengo.Item]",
+			"*gengo.List[gengo.Item]",
 			testingx.Equal(d.ReflectTypeLit(reflect.TypeOf(&List[Item]{}))))
 
 		testingx.Expect(t,
-			"*github_com_octohelm_gengo_pkg_gengo.List[github_com_octohelm_gengo_pkg_gengo.List[github_com_octohelm_gengo_pkg_gengo.Item]]",
+			"*gengo.List[gengo.List[gengo.Item]]",
 			testingx.Equal(d.ReflectTypeLit(reflect.TypeOf(&List[List[Item]]{}))))
 	})
 
