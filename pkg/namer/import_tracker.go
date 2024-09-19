@@ -7,7 +7,6 @@ import (
 
 	"github.com/octohelm/gengo/pkg/camelcase"
 	gengotypes "github.com/octohelm/gengo/pkg/types"
-	"golang.org/x/tools/go/packages"
 )
 
 type ImportTracker interface {
@@ -30,21 +29,6 @@ func NewDefaultImportTracker() ImportTracker {
 		pathToName: map[string]string{},
 		nameToPath: map[string]string{},
 		checkStd:   true,
-	}
-}
-
-var std = &defaultImportTracker{
-	pathToName: map[string]string{},
-	nameToPath: map[string]string{},
-}
-
-func init() {
-	pkgs, err := packages.Load(nil, "std")
-	if err != nil {
-		panic(err)
-	}
-	for _, p := range pkgs {
-		std.add(p.PkgPath)
 	}
 }
 
