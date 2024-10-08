@@ -1,6 +1,6 @@
 module github.com/octohelm/gengo
 
-go 1.23.1
+go 1.23.2
 
 require (
 	github.com/go-courier/logr v0.3.0

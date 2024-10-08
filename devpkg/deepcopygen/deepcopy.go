@@ -35,6 +35,10 @@ func (g *deepcopyGen) generateType(c gengo.Context, named *types.Named) error {
 
 	g.processed[named] = true
 
+	if _, ok := named.Obj().Type().Underlying().(*types.Interface); ok {
+		return gengo.ErrSkip
+	}
+
 	tags, _ := c.Doc(named.Obj())
 	if !gengo.IsGeneratorEnabled(g, tags) {
 		return nil

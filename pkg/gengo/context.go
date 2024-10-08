@@ -184,11 +184,6 @@ func (c *context) doGenerate(ctx corecontext.Context, g Generator) error {
 	for _, n := range names {
 		tpe := pkgTypes[n].Type()
 
-		// skip type XXX any
-		if _, ok := tpe.Underlying().(*types.Interface); ok {
-			continue
-		}
-
 		if named, ok := tpe.(*types.Named); ok {
 			// 	skip alias other pkg type XXX = XXX2
 			if named.Obj().Pkg() != c.pkg.Pkg() {

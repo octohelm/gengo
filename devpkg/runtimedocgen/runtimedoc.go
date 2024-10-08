@@ -22,6 +22,10 @@ func (*runtimedocGen) Name() string {
 }
 
 func (g *runtimedocGen) GenerateType(c gengo.Context, named *types.Named) error {
+	if _, ok := named.Obj().Type().Underlying().(*types.Interface); ok {
+		return gengo.ErrSkip
+	}
+
 	if !ast.IsExported(named.Obj().Name()) {
 		return gengo.ErrSkip
 	}
