@@ -66,7 +66,7 @@ func TestLoad(t *testing.T) {
 			"FuncWillCall":                      `(2, github.com/octohelm/gengo/testdata/a.String)`,
 			"FuncReturnWithCallDirectly":        `(2, github.com/octohelm/gengo/testdata/a.String)`,
 			"FuncWithNamedReturn":               `(2, github.com/octohelm/gengo/testdata/a.String)`,
-			"FuncSingleNamedReturnByAssign":     `("1", "2", *github.com/pkg/errors.fundamental)`,
+			"FuncSingleNamedReturnByAssign":     `("1", "2", *errors.errorString)`,
 			"FunWithSwitch":                     `("a1" | "a2" | "a3", "b1" | "b2" | "b3")`,
 			"FuncWithIf":                        `("a0" | "a1" | string)`,
 			"FuncCallReturnAssign":              `(2, github.com/octohelm/gengo/testdata/a.String)`,

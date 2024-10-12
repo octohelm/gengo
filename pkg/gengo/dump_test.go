@@ -2,9 +2,10 @@ package gengo
 
 import (
 	"bytes"
-	testingx "github.com/octohelm/x/testing"
 	"reflect"
 	"testing"
+
+	testingx "github.com/octohelm/x/testing"
 
 	"github.com/octohelm/gengo/pkg/namer"
 )

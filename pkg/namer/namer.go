@@ -1,9 +1,10 @@
 package namer
 
 import (
-	gengotypes "github.com/octohelm/gengo/pkg/types"
 	"go/types"
 	"strings"
+
+	gengotypes "github.com/octohelm/gengo/pkg/types"
 )
 
 type Namer interface {

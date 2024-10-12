@@ -3,7 +3,7 @@ package a
 import (
 	"strings"
 
-	"github.com/pkg/errors"
+	"errors"
 
 	"github.com/octohelm/gengo/testdata/a/b"
 )

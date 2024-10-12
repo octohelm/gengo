@@ -3,7 +3,7 @@ package gengo
 import (
 	"go/types"
 
-	"github.com/pkg/errors"
+	"errors"
 )
 
 var (

@@ -1,11 +1,12 @@
 package gengo_test
 
 import (
+	"reflect"
+	"testing"
+
 	"github.com/octohelm/gengo/pkg/gengo"
 	gengotypes "github.com/octohelm/gengo/pkg/types"
 	testingx "github.com/octohelm/x/testing"
-	"reflect"
-	"testing"
 )
 
 type List[T any] struct {

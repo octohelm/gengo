@@ -9,7 +9,6 @@ import (
 	"github.com/octohelm/gengo/devpkg/deepcopygen/helper"
 
 	"github.com/octohelm/gengo/pkg/gengo"
-	"github.com/pkg/errors"
 )
 
 func init() {
@@ -56,7 +55,7 @@ func (g *partialStructGen) GenerateType(c gengo.Context, named *types.Named) err
 
 	ts, ok := underlying.(*types.Struct)
 	if !ok {
-		return errors.Errorf("must be struct type, but got %s", underlying)
+		return fmt.Errorf("must be struct type, but got %s", underlying)
 	}
 
 	pkg := c.Package(named.Obj().Pkg().Path())
@@ -84,7 +83,7 @@ func (g *partialStructGen) GenerateType(c gengo.Context, named *types.Named) err
 	}
 
 	if ps.Origin == nil {
-		return errors.Errorf("need to define type like `type xxx sourcepkg.Type`")
+		return fmt.Errorf("need to define type like `type xxx sourcepkg.Type`")
 	}
 
 	return ps.generate(c, named, ts)

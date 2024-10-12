@@ -6,7 +6,6 @@ require (
 	github.com/go-courier/logr v0.3.0
 	github.com/octohelm/x v0.0.0-20240904081416-42a1ee2d28a9
 	github.com/onsi/gomega v1.34.2
-	github.com/pkg/errors v0.9.1
 	golang.org/x/sync v0.8.0
 	golang.org/x/text v0.18.0
 	golang.org/x/tools v0.25.0

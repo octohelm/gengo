@@ -2,7 +2,6 @@ package types
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
 	"go/ast"
 	"go/types"
 	"strings"
@@ -109,7 +108,7 @@ func ParseTypeRef(s string) (*TypeRef, error) {
 			return t, nil
 		}
 
-		return nil, errors.Errorf("invalid type ref: %s", s)
+		return nil, fmt.Errorf("invalid type ref: %s", s)
 	}
 
 	if i := strings.LastIndex(s, "."); i > 0 {

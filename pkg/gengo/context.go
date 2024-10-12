@@ -2,6 +2,8 @@ package gengo
 
 import (
 	corecontext "context"
+	"errors"
+	"fmt"
 	"go/token"
 	"go/types"
 	"log/slog"
@@ -10,12 +12,10 @@ import (
 	"strings"
 	"sync"
 
-	reflectx "github.com/octohelm/x/reflect"
-	"golang.org/x/sync/errgroup"
-
 	"github.com/go-courier/logr"
 	gengotypes "github.com/octohelm/gengo/pkg/types"
-	"github.com/pkg/errors"
+	reflectx "github.com/octohelm/x/reflect"
+	"golang.org/x/sync/errgroup"
 )
 
 type Executor interface {
@@ -86,7 +86,7 @@ func (c *context) pkgExecute(ctx corecontext.Context, pkg string, generators ...
 
 	p, ok := c.universe[pkg]
 	if !ok {
-		return errors.Errorf("invalid pkg `%s`", pkg)
+		return fmt.Errorf("invalid pkg `%s`", pkg)
 	}
 
 	pkgCtx := &context{
@@ -128,7 +128,7 @@ func (c *context) pkgExecute(ctx corecontext.Context, pkg string, generators ...
 			pkgCtxForGen.l = logr.FromContext(ctx).WithValues("gengo", g.Name())
 
 			if e := pkgCtxForGen.doGenerate(ctx, g); e != nil {
-				return errors.Wrapf(e, "`%s` generate failed for %s", g.Name(), pkgCtx.pkg.Pkg().Path())
+				return fmt.Errorf("`%s` generate failed for %s: %w", g.Name(), pkgCtx.pkg.Pkg().Path(), e)
 			}
 
 			gfs.Store(g.Name(), pkgCtxForGen.genfile)

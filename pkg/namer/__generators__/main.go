@@ -3,10 +3,11 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"golang.org/x/tools/go/packages"
 	"os"
 	"slices"
 	"strings"
+
+	"golang.org/x/tools/go/packages"
 )
 
 func main() {
