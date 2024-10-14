@@ -32,7 +32,7 @@ func (g *partialStructGen) GenerateType(c gengo.Context, named *types.Named) err
 	ps := PartialStruct{
 		Name: fmt.Sprintf("%s%s", strings.ToUpper(name[0:1]), name[1:]),
 
-		Replace: map[string]string{},
+		Replace: map[string][]string{},
 		Omit:    map[string]bool{},
 	}
 
@@ -44,9 +44,9 @@ func (g *partialStructGen) GenerateType(c gengo.Context, named *types.Named) err
 
 	if replace, ok := tags["gengo:partialstruct:replace"]; ok {
 		for _, field := range replace {
-			parts := strings.Split(field, ":")
+			parts := strings.SplitN(field, ":", 2)
 			if len(parts) == 2 {
-				ps.Replace[parts[0]] = parts[1]
+				ps.Replace[parts[0]] = strings.Split(parts[1], " ")
 			}
 		}
 	}
@@ -93,7 +93,7 @@ type PartialStruct struct {
 	Name    string
 	Origin  *types.TypeName
 	Omit    map[string]bool
-	Replace map[string]string
+	Replace map[string][]string
 }
 
 func (ps *PartialStruct) generate(c gengo.Context, named *types.Named, x *types.Struct) error {
@@ -142,7 +142,6 @@ func (in *@Type) DeepCopyIntoAs(out *@OriginType)  {
 		}).Snippet(c, named.Obj().Pkg()),
 
 		"fields": func(sw gengo.SnippetWriter) {
-
 			for i := 0; i < x.NumFields(); i++ {
 				f := x.Field(i)
 				tag := x.Tag(i)
@@ -155,13 +154,17 @@ func (in *@Type) DeepCopyIntoAs(out *@OriginType)  {
 				_, fieldDoc := c.Doc(f)
 
 				if replaceTo, ok := ps.Replace[fieldName]; ok {
+					if len(replaceTo) > 1 {
+						tag = strings.Join(replaceTo[1:], " ")
+					}
+
 					c.Render(gengo.Snippet{gengo.T: `
 @fieldDoc
 @fieldName @fieldType ` + "`" + `@fieldTag` + "`" + `
 `,
 						"fieldDoc":  gengo.Comment(strings.Join(fieldDoc, "\n")),
 						"fieldName": gengo.ID(fieldName),
-						"fieldType": gengo.ID(replaceTo),
+						"fieldType": gengo.ID(replaceTo[0]),
 						"fieldTag":  gengo.ID(tag),
 					})
 
