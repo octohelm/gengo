@@ -154,6 +154,12 @@ type Name = func(d *Dumper) string
 func ID(v any) Name {
 	return func(d *Dumper) string {
 		switch x := v.(type) {
+		case *types.Alias:
+			ref, err := gengotypes.ParseRef(x.String())
+			if err != nil {
+				return x.String()
+			}
+			return d.Name(ref)
 		case string:
 			ref, err := gengotypes.ParseRef(x)
 			if err != nil {
