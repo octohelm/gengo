@@ -174,49 +174,75 @@ func (c *context) doGenerate(ctx corecontext.Context, g Generator) error {
 	pkgTypes := c.pkg.Types()
 
 	names := make([]string, 0)
-
 	for n := range pkgTypes {
 		names = append(names, n)
 	}
-
 	sort.Strings(names)
 
 	for _, n := range names {
 		tpe := pkgTypes[n].Type()
 
-		if named, ok := tpe.(*types.Named); ok {
-			// 	skip alias other pkg type XXX = XXX2
-			if named.Obj().Pkg() != c.pkg.Pkg() {
-				continue
-			}
-
-			tags, _ := c.Doc(named.Obj())
+		switch x := tpe.(type) {
+		case *types.Alias:
+			tags, _ := c.Doc(x.Obj())
 
 			if IsGeneratorEnabled(g, tags) {
-				if err := func() error {
-					_, l := logr.FromContext(ctx).WithValues(slog.String("target", named.String())).Start(ctx, g.Name())
-					defer l.End()
-
-					if err := g.GenerateType(c, named); err != nil {
-						if errors.Is(err, ErrSkip) {
-							return nil
-						}
-						if errors.Is(err, ErrIgnore) {
-							l.Warn(err)
-							return nil
-						}
+				if a, ok := g.(AliasGenerator); ok {
+					if err := c.doGenerateAliasType(ctx, a, x); err != nil {
 						return err
 					}
+				}
+			}
+		case *types.Named:
+			tags, _ := c.Doc(x.Obj())
 
-					l.Debug("generated.")
-
-					return nil
-				}(); err != nil {
+			if IsGeneratorEnabled(g, tags) {
+				if err := c.doGenerateType(ctx, g, x); err != nil {
 					return err
 				}
 			}
 		}
 	}
+
+	return nil
+}
+
+func (c *context) doGenerateType(ctx corecontext.Context, g Generator, x *types.Named) error {
+	_, l := logr.FromContext(ctx).WithValues(slog.String("target", x.String())).Start(ctx, g.Name())
+	defer l.End()
+
+	if err := g.GenerateType(c, x); err != nil {
+		if errors.Is(err, ErrSkip) {
+			return nil
+		}
+		if errors.Is(err, ErrIgnore) {
+			l.Warn(err)
+			return nil
+		}
+		return err
+	}
+
+	l.Debug("generated.")
+
+	return nil
+}
+
+func (c *context) doGenerateAliasType(ctx corecontext.Context, g AliasGenerator, x *types.Alias) error {
+	_, l := logr.FromContext(ctx).WithValues(slog.String("target", x.String())).Start(ctx, g.Name())
+	defer l.End()
+
+	if err := g.GenerateAliasType(c, x); err != nil {
+		if errors.Is(err, ErrSkip) {
+			return nil
+		}
+		if errors.Is(err, ErrIgnore) {
+			l.Warn(err)
+			return nil
+		}
+		return err
+	}
+
+	l.Debug("generated.")
 
 	return nil
 }

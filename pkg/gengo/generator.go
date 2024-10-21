@@ -27,6 +27,13 @@ type Generator interface {
 	GenerateType(Context, *types.Named) error
 }
 
+type AliasGenerator interface {
+	// Name generator name
+	Name() string
+	
+	GenerateAliasType(Context, *types.Alias) error
+}
+
 type GeneratorNewer interface {
 	// New generator
 	New(c Context) Generator
