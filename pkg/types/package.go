@@ -1,14 +1,14 @@
 package types
 
 import (
+	"github.com/octohelm/x/ptr"
 	"go/ast"
 	"go/token"
 	"go/types"
+	"golang.org/x/tools/go/packages"
 	"path/filepath"
 	"strings"
 	"sync"
-
-	"golang.org/x/tools/go/packages"
 )
 
 type Module struct {
@@ -62,7 +62,7 @@ type ModInfo struct {
 	Require map[string]string
 }
 
-func newPkg(pkg *packages.Package, u Universe) Package {
+func newPkg(pkg *packages.Package, u *Universe) Package {
 	p := &pkgInfo{
 		u: u,
 
@@ -222,7 +222,7 @@ func newPkg(pkg *packages.Package, u Universe) Package {
 }
 
 type pkgInfo struct {
-	u       Universe
+	u       *Universe
 	Package *packages.Package
 
 	imports map[string]Package
@@ -240,13 +240,31 @@ type pkgInfo struct {
 
 	funcResults         sync.Map
 	funcResultResolvers sync.Map
+
+	sourceDir *string
 }
 
 func (pi *pkgInfo) SourceDir() string {
-	if pi.Package.PkgPath == pi.Module().Path {
-		return pi.Module().Dir
+	if pi.sourceDir != nil {
+		return *pi.sourceDir
 	}
-	return filepath.Join(pi.Module().Dir, pi.Package.PkgPath[len(pi.Module().Path):])
+
+	sourceDir := func() string {
+		if pi == nil || pi.Package == nil {
+			return ""
+		}
+		if pi.Module() == nil {
+			return ""
+		}
+		if pi.Package.PkgPath == pi.Module().Path {
+			return pi.Module().Dir
+		}
+		return filepath.Join(pi.Module().Dir, pi.Package.PkgPath[len(pi.Module().Path):])
+	}()
+
+	pi.sourceDir = ptr.Ptr(sourceDir)
+
+	return sourceDir
 }
 
 func (pi *pkgInfo) Pkg() *types.Package {

@@ -30,7 +30,7 @@ func NewContext(args *GeneratorArgs) (Executor, error) {
 	c := &context{
 		pkgPaths: pkgPaths,
 		args:     args,
-		universe: u,
+		universe: *u,
 	}
 	return c, nil
 }
@@ -47,9 +47,9 @@ type context struct {
 	pkgPaths map[string]bool
 	args     *GeneratorArgs
 
-	universe gengotypes.Universe
 	pkgTags  map[string][]string
 	pkg      gengotypes.Package
+	universe gengotypes.Universe
 	genfile  *genfile
 	l        logr.Logger
 }
@@ -84,8 +84,8 @@ func (c *context) pkgExecute(ctx corecontext.Context, pkg string, generators ...
 	ctx, l := logr.FromContext(ctx).Start(ctx, pkg)
 	defer l.End()
 
-	p, ok := c.universe[pkg]
-	if !ok {
+	p := c.universe.Package(pkg)
+	if p == nil {
 		return fmt.Errorf("invalid pkg `%s`", pkg)
 	}
 

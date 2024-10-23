@@ -3,6 +3,7 @@ package types
 import (
 	"fmt"
 	"go/token"
+	"path/filepath"
 
 	"golang.org/x/tools/go/packages"
 )
@@ -15,8 +16,11 @@ const (
 	LoadAllSyntax = LoadSyntax | packages.NeedDeps | packages.NeedModule
 )
 
-func Load(patterns []string) (Universe, map[string]bool, error) {
+func Load(patterns []string) (*Universe, map[string]bool, error) {
+	fset := token.NewFileSet()
+
 	c := &packages.Config{
+		Fset: fset,
 		Mode: LoadAllSyntax,
 	}
 
@@ -25,12 +29,14 @@ func Load(patterns []string) (Universe, map[string]bool, error) {
 		return nil, nil, err
 	}
 
-	u := Universe{}
+	u := &Universe{
+		fset: fset,
+		pkgs: map[string]Package{},
+	}
 	rootPkgPaths := map[string]bool{}
 	pkgPaths := map[string]bool{}
 
 	var register func(p *packages.Package)
-
 	register = func(p *packages.Package) {
 		if len(p.Errors) > 0 {
 			for i := range p.Errors {
@@ -44,12 +50,12 @@ func Load(patterns []string) (Universe, map[string]bool, error) {
 		for k := range p.Imports {
 			importedPkg := p.Imports[k]
 
-			if _, ok := u[importedPkg.PkgPath]; !ok {
+			if _, ok := u.pkgs[importedPkg.PkgPath]; !ok {
 				register(importedPkg)
 			}
 		}
 
-		u[p.PkgPath] = pkg
+		u.pkgs[p.PkgPath] = pkg
 
 		for rootPkgPath := range rootPkgPaths {
 			// when is sub pkg of root pkg
@@ -57,7 +63,6 @@ func Load(patterns []string) (Universe, map[string]bool, error) {
 				pkgPaths[p.PkgPath] = true
 			}
 		}
-
 	}
 
 	for i := range pkgs {
@@ -82,19 +87,23 @@ func Load(patterns []string) (Universe, map[string]bool, error) {
 	return u, pkgPaths, nil
 }
 
-type Universe map[string]Package
-
-func (u Universe) Package(pkgPath string) Package {
-	return u[pkgPath]
+type Universe struct {
+	fset *token.FileSet
+	pkgs map[string]Package
 }
 
-func (u Universe) LocateInPackage(pos token.Pos) Package {
-	for i := range u {
-		p := u[i]
-		for _, f := range p.Files() {
-			if f.Pos() >= pos && pos <= f.End() {
-				return p
-			}
+func (u *Universe) Package(pkgPath string) Package {
+	v, _ := u.pkgs[pkgPath]
+	return v
+}
+
+func (u *Universe) LocateInPackage(pos token.Pos) Package {
+	pp := u.fset.Position(pos)
+	dir := filepath.Dir(pp.Filename)
+
+	for _, p := range u.pkgs {
+		if dir == p.SourceDir() {
+			return p
 		}
 	}
 	return nil
