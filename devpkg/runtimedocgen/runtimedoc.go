@@ -49,11 +49,19 @@ func (g *runtimedocGen) createHelperOnce(c gengo.Context) {
 
 	c.Render(gengo.Snippet{gengo.T: `
 // nolint:deadcode,unused
-func runtimeDoc(v any, names ...string) ([]string, bool) {
+func runtimeDoc(v any, prefix string, names ...string) ([]string, bool) {
 	if c, ok := v.(interface {
 		RuntimeDoc(names ...string) ([]string, bool)
 	}); ok {
-		return c.RuntimeDoc(names...)
+		doc, ok := c.RuntimeDoc(names...)
+		if ok {	
+			if prefix != "" && len(doc) > 0 {
+				doc[0] = prefix + doc[0]
+				return doc, true
+			}
+
+			return doc, true			
+		}
 	}
 	return nil, false
 }
@@ -111,6 +119,10 @@ func(v @Type) RuntimeDoc(names ...string) ([]string, bool) {
 						continue
 					}
 
+					if f.Embedded() {
+						continue
+					}
+
 					_, fieldDoc := c.Doc(f)
 
 					if _, ok := f.Type().(*types.Struct); ok {
@@ -120,7 +132,7 @@ func(v @Type) RuntimeDoc(names ...string) ([]string, bool) {
 
 					// skip empty struct
 					if s, ok := f.Type().Underlying().(*types.Struct); ok {
-						if !hasExposeField(s) {
+						if s.NumFields() == 0 {
 							continue
 						}
 					}
@@ -143,6 +155,7 @@ case @fieldName:
 			"embeds": func(sw gengo.SnippetWriter) {
 				for i := 0; i < x.NumFields(); i++ {
 					f := x.Field(i)
+
 					if f.Embedded() {
 						if s, ok := f.Type().Underlying().(*types.Struct); ok {
 							if !hasExposeField(s) {
@@ -150,8 +163,23 @@ case @fieldName:
 							}
 						}
 
+						_, fieldDoc := c.Doc(f)
+
+						if len(fieldDoc) > 0 {
+							sw.Render(gengo.Snippet{gengo.T: `
+if doc, ok := runtimeDoc(v.@fieldName, @prefix, names...); ok  {
+	return doc, ok
+}
+`,
+								"fieldName": gengo.ID(f.Name()),
+								"prefix":    fieldDoc[0],
+							})
+
+							continue
+						}
+
 						sw.Render(gengo.Snippet{gengo.T: `
-if doc, ok := runtimeDoc(v.@fieldName, names...); ok  {
+if doc, ok := runtimeDoc(v.@fieldName, "", names...); ok  {
 	return doc, ok
 }
 `,
@@ -169,6 +197,7 @@ if doc, ok := runtimeDoc(v.@fieldName, names...); ok  {
 func(@Type) RuntimeDoc(names ...string) ([]string, bool) {
 	return @doc, true
 }
+
 `,
 			"Type": gengo.ID(named.Obj()),
 			"doc":  doc,
