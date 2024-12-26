@@ -17,9 +17,15 @@ var (
 		if i == 0 {
 			return strings.ToLower(w)
 		}
+		if w == "ID" {
+			return w
+		}
 		return cases.Title(language.Und).String(w)
 	})
 	UpperCamelCase = makeCase("", func(w string, i int) string {
+		if w == "ID" {
+			return w
+		}
 		return cases.Title(language.Und).String(w)
 	})
 )

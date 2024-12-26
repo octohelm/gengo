@@ -32,6 +32,7 @@ func TestSplit(t *testing.T) {
 		{"MyClass", "My", "Class"},
 		{"MyC", "My", "C"},
 		{"HTML", "HTML"},
+		{"ID", "ID"},
 		{"PDFLoader", "PDF", "Loader"},
 		{"AString", "A", "String"},
 		{"SimpleXMLParser", "Simple", "XML", "Parser"},
