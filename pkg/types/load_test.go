@@ -60,19 +60,20 @@ func TestLoad(t *testing.T) {
 		funcResults := map[string]string{
 			"FuncReturnWithInterfaceCallSingle": `(string)`,
 			"FuncReturnWithInterfaceCall":       `(string, error)`,
-			"FuncWithCallChain":                 `(untyped nil | *string, untyped nil | untyped nil)`,
+			"FuncWithCallChain":                 `(untyped nil | *string, error | untyped nil)`,
 			"FuncSingleReturn":                  `(2)`,
 			"FuncSelectExprReturn":              `(string)`,
 			"FuncWillCall":                      `(2, github.com/octohelm/gengo/testdata/a.String)`,
 			"FuncReturnWithCallDirectly":        `(2, github.com/octohelm/gengo/testdata/a.String)`,
 			"FuncWithNamedReturn":               `(2, github.com/octohelm/gengo/testdata/a.String)`,
-			"FuncSingleNamedReturnByAssign":     `("1", "2", *errors.errorString)`,
+			"FuncSingleNamedReturnByAssign":     `("1", "2", error)`,
 			"FunWithSwitch":                     `("a1" | "a2" | "a3", "b1" | "b2" | "b3")`,
 			"FuncWithIf":                        `("a0" | "a1" | string)`,
 			"FuncCallReturnAssign":              `(2, github.com/octohelm/gengo/testdata/a.String)`,
 			"FuncCallWithFuncLit":               `(1, "s")`,
 			"FuncWithImportedCall":              `(int)`,
 			"FuncCurryCall":                     `(int)`,
+			"FuncWithGenerics":                  `(*github.com/octohelm/gengo/testdata/a.Node, error)`,
 		}
 
 		for k, r := range funcResults {

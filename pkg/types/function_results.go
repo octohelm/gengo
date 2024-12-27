@@ -5,6 +5,7 @@ import (
 	"go/ast"
 	"go/constant"
 	"go/types"
+	"slices"
 	"sync"
 )
 
@@ -118,25 +119,24 @@ func (pi *pkgInfo) resolveFuncResults(s *types.Signature) (finalFuncResults Resu
 			return pi.funcResultsFrom(s, x.Type, x.Body)
 		case *ast.SelectorExpr:
 			if fn, ok := pi.Package.TypesInfo.Uses[x.Sel].(*types.Func); ok {
-				pp := pi.u.Package(fn.Pkg().Path()).(*pkgInfo)
-				switch x := pp.funcDecls[fn].(type) {
-				case *ast.FuncDecl:
-					return pp.funcResultsFrom(s, x.Type, x.Body)
-				case *ast.FuncLit:
-					return pp.funcResultsFrom(s, x.Type, x.Body)
+				results := resolveResultsFromSignature(s)
+
+				resolveInFunc := func() Results {
+					pp := pi.u.Package(fn.Pkg().Path()).(*pkgInfo)
+					switch x := pp.funcDecls[fn].(type) {
+					case *ast.FuncDecl:
+						return pp.funcResultsFrom(s, x.Type, x.Body)
+					case *ast.FuncLit:
+						return pp.funcResultsFrom(s, x.Type, x.Body)
+					}
+					return Results{}
 				}
+
+				return slices.Concat(results, resolveInFunc())
 			}
 		case *ast.CallExpr:
 			// TODO should scan curried calls
-			r := s.Results()
-
-			finalFuncResults = make(Results, r.Len())
-			for i := 0; i < r.Len(); i++ {
-				finalFuncResults[i] = append(finalFuncResults[i], TypeAndValue{
-					Type: r.At(i).Type(),
-					At:   i,
-				})
-			}
+			finalFuncResults = resolveResultsFromSignature(s)
 			return
 		}
 	} else {
@@ -153,6 +153,18 @@ func (pi *pkgInfo) resolveFuncResults(s *types.Signature) (finalFuncResults Resu
 	}
 
 	return nil
+}
+
+func resolveResultsFromSignature(sig *types.Signature) (finalFuncResults Results) {
+	r := sig.Results()
+	finalFuncResults = make(Results, r.Len())
+	for i := 0; i < r.Len(); i++ {
+		finalFuncResults[i] = append(finalFuncResults[i], TypeAndValue{
+			Type: r.At(i).Type(),
+			At:   i,
+		})
+	}
+	return
 }
 
 func (pi *pkgInfo) funcResultsFrom(s *types.Signature, funcType *ast.FuncType, body *ast.BlockStmt) Results {

@@ -95,3 +95,10 @@ type Node struct {
 	Type     string  `json:"type"`
 	Children []*Node `json:"children"`
 }
+
+type ListNode struct {
+}
+
+func (req *ListNode) ResponseData() *Node {
+	return new(Node)
+}

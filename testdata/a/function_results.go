@@ -1,6 +1,8 @@
 package a
 
 import (
+	"context"
+	"github.com/octohelm/gengo/testdata/a/x"
 	"strings"
 
 	"errors"
@@ -149,6 +151,10 @@ func FuncCallWithFuncLit() (a any, b String) {
 
 func FuncWithImportedCall() any {
 	return b.V()
+}
+
+func FuncWithGenerics() (any, error) {
+	return x.Do(context.Background(), &ListNode{})
 }
 
 type Func func() func() int
