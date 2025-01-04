@@ -57,6 +57,15 @@ func (results Results) String() string {
 	return buf.String()
 }
 
+func (results Results) Concat(result2 Results) (finalResult Results) {
+	if len(results) == len(result2) {
+		for i, values := range result2 {
+			results[i] = slices.Concat(results[i], values)
+		}
+	}
+	return results
+}
+
 type TypeAndValues []TypeAndValue
 
 func (typeOrValues TypeAndValues) String() string {
@@ -132,7 +141,7 @@ func (pi *pkgInfo) resolveFuncResults(s *types.Signature) (finalFuncResults Resu
 					return Results{}
 				}
 
-				return slices.Concat(results, resolveInFunc())
+				return results.Concat(resolveInFunc())
 			}
 		case *ast.CallExpr:
 			// TODO should scan curried calls
