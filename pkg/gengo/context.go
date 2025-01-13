@@ -163,6 +163,11 @@ func (c *context) LocateInPackage(pos token.Pos) gengotypes.Package {
 
 func (c *context) Doc(typ types.Object) (Tags, []string) {
 	tags, doc := c.universe.Package(typ.Pkg().Path()).Doc(typ.Pos())
+
+	if len(doc) > 0 {
+		doc[0] = strings.TrimSpace(strings.TrimPrefix(doc[0], typ.Name()))
+	}
+
 	return merge(c.args.Globals, c.pkgTags, tags), doc
 }
 
