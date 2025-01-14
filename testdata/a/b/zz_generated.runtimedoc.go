@@ -4,6 +4,8 @@ DON'T EDIT THIS FILE
 */
 package b
 
+import _ "embed"
+
 // nolint:deadcode,unused
 func runtimeDoc(v any, prefix string, names ...string) ([]string, bool) {
 	if c, ok := v.(interface {
@@ -22,19 +24,17 @@ func runtimeDoc(v any, prefix string, names ...string) ([]string, bool) {
 	return nil, false
 }
 
-func (B) RuntimeDoc(names ...string) ([]string, bool) {
+func (*B) RuntimeDoc(names ...string) ([]string, bool) {
 	return []string{
-		"B is a type for testing",
+		"is a type for testing",
 	}, true
 }
 
-func (v List[T]) RuntimeDoc(names ...string) ([]string, bool) {
+func (v *List[T]) RuntimeDoc(names ...string) ([]string, bool) {
 	if len(names) > 0 {
 		switch names[0] {
 		case "Name":
-			return []string{
-				"Name",
-			}, true
+			return []string{}, true
 
 		}
 
@@ -43,7 +43,10 @@ func (v List[T]) RuntimeDoc(names ...string) ([]string, bool) {
 	return []string{}, true
 }
 
-func (v Obj) RuntimeDoc(names ...string) ([]string, bool) {
+//go:embed doc/b.md
+var embedDocOfObj1 string
+
+func (v *Obj) RuntimeDoc(names ...string) ([]string, bool) {
 	if len(names) > 0 {
 		switch names[0] {
 		case "Name":
@@ -53,22 +56,20 @@ func (v Obj) RuntimeDoc(names ...string) ([]string, bool) {
 			}, true
 
 		}
-		if doc, ok := runtimeDoc(v.SubObj, "", names...); ok {
+		if doc, ok := runtimeDoc(&v.SubObj, "", names...); ok {
 			return doc, ok
 		}
 
 		return nil, false
 	}
-	return []string{}, true
+	return []string{"some object", embedDocOfObj1}, true
 }
 
-func (v SubObj) RuntimeDoc(names ...string) ([]string, bool) {
+func (v *SubObj) RuntimeDoc(names ...string) ([]string, bool) {
 	if len(names) > 0 {
 		switch names[0] {
 		case "Age":
-			return []string{
-				"Age",
-			}, true
+			return []string{}, true
 
 		}
 
@@ -77,16 +78,16 @@ func (v SubObj) RuntimeDoc(names ...string) ([]string, bool) {
 	return []string{}, true
 }
 
-func (v Third) RuntimeDoc(names ...string) ([]string, bool) {
+func (v *Third) RuntimeDoc(names ...string) ([]string, bool) {
 	if len(names) > 0 {
 		switch names[0] {
 		case "Path":
 			return []string{
-				"Path is a module path, like \"golang.org/x/text\" or \"rsc.io/quote/v2\".",
+				"is a module path, like \"golang.org/x/text\" or \"rsc.io/quote/v2\".",
 			}, true
 		case "Version":
 			return []string{
-				"Version is usually a semantic version in canonical form.",
+				"is usually a semantic version in canonical form.",
 				"There are three exceptions to this general rule.",
 				"First, the top-level target of a build has no specific version",
 				"and uses Version = \"\".",

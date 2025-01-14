@@ -7,6 +7,8 @@ import (
 // B is a type for testing
 type B string
 
+// Obj some object
+// [[doc/b.md]]
 type Obj struct {
 	// name
 	// 姓名
