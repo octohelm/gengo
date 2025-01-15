@@ -1,14 +1,16 @@
 package defaultergen
 
 import (
+	"context"
 	"fmt"
 	"go/ast"
 	"go/types"
+	"iter"
 	"strings"
 
 	"github.com/octohelm/gengo/devpkg/deepcopygen/helper"
-
 	"github.com/octohelm/gengo/pkg/gengo"
+	"github.com/octohelm/gengo/pkg/gengo/snippet"
 )
 
 func init() {
@@ -97,8 +99,7 @@ type PartialStruct struct {
 }
 
 func (ps *PartialStruct) generate(c gengo.Context, named *types.Named, x *types.Struct) error {
-	c.Render(gengo.Snippet{
-		gengo.T: `
+	c.RenderT(`
 type @Type struct {
 	@fields
 }
@@ -115,11 +116,12 @@ func (in *@Type) DeepCopyAs() *@OriginType {
 func (in *@Type) DeepCopyIntoAs(out *@OriginType)  {
 	@fieldsCopies
 }
-`,
-		"Type":       gengo.ID(ps.Name),
-		"OriginType": gengo.ID(ps.Origin),
+`, snippet.Args{
+		"Type":       snippet.ID(ps.Name),
+		"OriginType": snippet.ID(ps.Origin),
 
-		"fieldsCopies": (&helper.StructFieldsCopy{
+		"fieldsCopies": &helper.StructFieldsCopy{
+			Pkg:              named.Obj().Pkg(),
 			DeepCopyIntoName: "DeepCopyIntoAs",
 			DeepCopyName:     "DeepCopyAs",
 			Struct:           x,
@@ -136,52 +138,65 @@ func (in *@Type) DeepCopyIntoAs(out *@OriginType)  {
 
 					return fc
 				}
-
 				return nil
 			},
-		}).Snippet(c, named.Obj().Pkg()),
+		},
 
-		"fields": func(sw gengo.SnippetWriter) {
-			for i := 0; i < x.NumFields(); i++ {
-				f := x.Field(i)
-				tag := x.Tag(i)
-				fieldName := f.Name()
+		"fields": snippet.Func(func(ctx context.Context) iter.Seq[string] {
+			return func(yield func(string) bool) {
+				for i := 0; i < x.NumFields(); i++ {
+					f := x.Field(i)
+					tag := x.Tag(i)
+					fieldName := f.Name()
 
-				if _, ok := ps.Omit[fieldName]; ok {
-					continue
-				}
-
-				_, fieldDoc := c.Doc(f)
-
-				if replaceTo, ok := ps.Replace[fieldName]; ok {
-					if len(replaceTo) > 1 {
-						tag = strings.Join(replaceTo[1:], " ")
+					if _, ok := ps.Omit[fieldName]; ok {
+						continue
 					}
 
-					c.Render(gengo.Snippet{gengo.T: `
+					_, fieldDoc := c.Doc(f)
+
+					if replaceTo, ok := ps.Replace[fieldName]; ok {
+						if len(replaceTo) > 1 {
+							tag = strings.Join(replaceTo[1:], " ")
+						}
+
+						s := snippet.T(`
 @fieldDoc
-@fieldName @fieldType ` + "`" + `@fieldTag` + "`" + `
-`,
-						"fieldDoc":  gengo.Comment(strings.Join(fieldDoc, "\n")),
-						"fieldName": gengo.ID(fieldName),
-						"fieldType": gengo.ID(replaceTo[0]),
-						"fieldTag":  gengo.ID(tag),
+@fieldName @fieldType `+"`"+`@fieldTag`+"`"+`
+`, snippet.Args{
+							"fieldDoc":  snippet.Comment(strings.Join(fieldDoc, "\n")),
+							"fieldName": snippet.ID(fieldName),
+							"fieldType": snippet.ID(replaceTo[0]),
+							"fieldTag":  snippet.ID(tag),
+						})
+
+						for code := range snippet.Fragments(ctx, s) {
+							if !yield(code) {
+								return
+							}
+						}
+
+						continue
+					}
+
+					s := snippet.T(`
+@fieldDoc
+@fieldName @fieldType `+"`"+`@fieldTag`+"`"+`
+`, snippet.Args{
+						"fieldDoc":  snippet.Comment(strings.Join(fieldDoc, "\n")),
+						"fieldName": snippet.ID(fieldName),
+						"fieldType": snippet.ID(f.Type()),
+						"fieldTag":  snippet.ID(tag),
 					})
 
-					continue
+					for code := range snippet.Fragments(ctx, s) {
+						if !yield(code) {
+							return
+						}
+					}
 				}
-
-				c.Render(gengo.Snippet{gengo.T: `
-@fieldDoc
-@fieldName @fieldType ` + "`" + `@fieldTag` + "`" + `
-`,
-					"fieldDoc":  gengo.Comment(strings.Join(fieldDoc, "\n")),
-					"fieldName": gengo.ID(fieldName),
-					"fieldType": gengo.ID(f.Type()),
-					"fieldTag":  gengo.ID(tag),
-				})
 			}
-		},
+		}),
 	})
 
 	return nil

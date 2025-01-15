@@ -1,7 +1,6 @@
 package gengo
 
 import (
-	corecontext "context"
 	"errors"
 	"fmt"
 	"go/token"
@@ -12,7 +11,9 @@ import (
 	"strings"
 	"sync"
 
+	corecontext "context"
 	"github.com/go-courier/logr"
+	"github.com/octohelm/gengo/pkg/gengo/snippet"
 	gengotypes "github.com/octohelm/gengo/pkg/types"
 	reflectx "github.com/octohelm/x/reflect"
 	"golang.org/x/sync/errgroup"
@@ -27,7 +28,7 @@ func NewContext(args *GeneratorArgs) (Executor, error) {
 	if err != nil {
 		return nil, err
 	}
-	c := &context{
+	c := &gengoCtx{
 		pkgPaths: pkgPaths,
 		args:     args,
 		universe: *u,
@@ -39,11 +40,12 @@ type Context interface {
 	LocateInPackage(pos token.Pos) gengotypes.Package
 	Package(importPath string) gengotypes.Package
 	Doc(typ types.Object) (Tags, []string)
-	Render(snippet Snippet)
 	Logger() logr.Logger
+	Render(snippet snippet.Snippet)
+	RenderT(template string, args ...snippet.TArg)
 }
 
-type context struct {
+type gengoCtx struct {
 	pkgPaths map[string]bool
 	args     *GeneratorArgs
 
@@ -54,19 +56,23 @@ type context struct {
 	l        logr.Logger
 }
 
-func (c *context) Logger() logr.Logger {
+func (c *gengoCtx) Logger() logr.Logger {
 	return c.l
 }
 
-func (c *context) Render(snippet Snippet) {
+func (c *gengoCtx) RenderT(template string, args ...snippet.TArg) {
+	c.genfile.Render(snippet.T(template, args...))
+}
+
+func (c *gengoCtx) Render(snippet snippet.Snippet) {
 	c.genfile.Render(snippet)
 }
 
-func (c *context) Writer() SnippetWriter {
+func (c *gengoCtx) Writer() SnippetWriter {
 	return c.genfile
 }
 
-func (c *context) Execute(ctx corecontext.Context, generators ...Generator) error {
+func (c *gengoCtx) Execute(ctx corecontext.Context, generators ...Generator) error {
 	cc, l := logr.FromContext(ctx).Start(ctx, "Gen")
 	defer l.End()
 
@@ -80,7 +86,7 @@ func (c *context) Execute(ctx corecontext.Context, generators ...Generator) erro
 	return nil
 }
 
-func (c *context) pkgExecute(ctx corecontext.Context, pkg string, generators ...Generator) error {
+func (c *gengoCtx) pkgExecute(ctx corecontext.Context, pkg string, generators ...Generator) error {
 	ctx, l := logr.FromContext(ctx).Start(ctx, pkg)
 	defer l.End()
 
@@ -89,7 +95,7 @@ func (c *context) pkgExecute(ctx corecontext.Context, pkg string, generators ...
 		return fmt.Errorf("invalid pkg `%s`", pkg)
 	}
 
-	pkgCtx := &context{
+	pkgCtx := &gengoCtx{
 		universe: c.universe,
 		args:     c.args,
 		pkg:      p,
@@ -110,7 +116,7 @@ func (c *context) pkgExecute(ctx corecontext.Context, pkg string, generators ...
 
 	for i := range generators {
 		eg.Go(func() error {
-			pkgCtxForGen := &context{
+			pkgCtxForGen := &gengoCtx{
 				args:     pkgCtx.args,
 				universe: pkgCtx.universe,
 				pkg:      pkgCtx.pkg,
@@ -150,18 +156,18 @@ func (c *context) pkgExecute(ctx corecontext.Context, pkg string, generators ...
 	return nil
 }
 
-func (c *context) Package(importPath string) gengotypes.Package {
+func (c *gengoCtx) Package(importPath string) gengotypes.Package {
 	if importPath == "" {
 		return c.pkg
 	}
 	return c.universe.Package(importPath)
 }
 
-func (c *context) LocateInPackage(pos token.Pos) gengotypes.Package {
+func (c *gengoCtx) LocateInPackage(pos token.Pos) gengotypes.Package {
 	return c.universe.LocateInPackage(pos)
 }
 
-func (c *context) Doc(typ types.Object) (Tags, []string) {
+func (c *gengoCtx) Doc(typ types.Object) (Tags, []string) {
 	tags, doc := c.universe.Package(typ.Pkg().Path()).Doc(typ.Pos())
 
 	if len(doc) > 0 {
@@ -174,7 +180,7 @@ func (c *context) Doc(typ types.Object) (Tags, []string) {
 	return merge(c.args.Globals, c.pkgTags, tags), doc
 }
 
-func (c *context) doGenerate(ctx corecontext.Context, g Generator) error {
+func (c *gengoCtx) doGenerate(ctx corecontext.Context, g Generator) error {
 	if c.pkg == nil {
 		return nil
 	}
@@ -215,7 +221,7 @@ func (c *context) doGenerate(ctx corecontext.Context, g Generator) error {
 	return nil
 }
 
-func (c *context) doGenerateType(ctx corecontext.Context, g Generator, x *types.Named) error {
+func (c *gengoCtx) doGenerateType(ctx corecontext.Context, g Generator, x *types.Named) error {
 	_, l := logr.FromContext(ctx).WithValues(slog.String("target", x.String())).Start(ctx, g.Name())
 	defer l.End()
 
@@ -235,7 +241,7 @@ func (c *context) doGenerateType(ctx corecontext.Context, g Generator, x *types.
 	return nil
 }
 
-func (c *context) doGenerateAliasType(ctx corecontext.Context, g AliasGenerator, x *types.Alias) error {
+func (c *gengoCtx) doGenerateAliasType(ctx corecontext.Context, g AliasGenerator, x *types.Alias) error {
 	_, l := logr.FromContext(ctx).WithValues(slog.String("target", x.String())).Start(ctx, g.Name())
 	defer l.End()
 
@@ -255,7 +261,7 @@ func (c *context) doGenerateAliasType(ctx corecontext.Context, g AliasGenerator,
 	return nil
 }
 
-func (c *context) New(generator Generator) Generator {
+func (c *gengoCtx) New(generator Generator) Generator {
 	if creator, ok := generator.(GeneratorNewer); ok {
 		return creator.New(c)
 	}

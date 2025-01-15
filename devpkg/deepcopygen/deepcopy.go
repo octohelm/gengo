@@ -4,8 +4,8 @@ import (
 	"go/types"
 
 	"github.com/octohelm/gengo/devpkg/deepcopygen/helper"
-
 	"github.com/octohelm/gengo/pkg/gengo"
+	"github.com/octohelm/gengo/pkg/gengo/snippet"
 )
 
 func init() {
@@ -55,7 +55,7 @@ func (g *deepcopyGen) generateType(c gengo.Context, named *types.Named) error {
 	defers := make([]*types.Named, 0)
 
 	if interfaces != "" {
-		c.Render(gengo.Snippet{gengo.T: `
+		c.RenderT(`
 func(in *@Type) DeepCopyObject() @ObjectInterface {
 	if c := in.DeepCopy(); c != nil {
 		return c
@@ -63,9 +63,9 @@ func(in *@Type) DeepCopyObject() @ObjectInterface {
 	return nil 
 }
 
-`,
-			"ObjectInterface": gengo.ID(interfaces),
-			"Type":            gengo.ID(named.Obj()),
+`, snippet.Args{
+			"ObjectInterface": snippet.ID(interfaces),
+			"Type":            snippet.ID(named.Obj()),
 		})
 	}
 
@@ -73,7 +73,7 @@ func(in *@Type) DeepCopyObject() @ObjectInterface {
 	case *types.Interface:
 
 	case *types.Map:
-		c.Render(gengo.Snippet{gengo.T: `
+		c.RenderT(`
 func(in @Type) DeepCopy() @Type {
 	if in == nil {
 		return nil
@@ -89,12 +89,12 @@ func(in @Type) DeepCopyInto(out @Type) {
 	}
 }
 
-`,
-			"Type": gengo.ID(named.Obj()),
+`, snippet.Args{
+			"Type": snippet.ID(named.Obj()),
 		})
 
 	case *types.Struct:
-		c.Render(gengo.Snippet{gengo.T: `
+		c.RenderT(`
 func(in *@Type) DeepCopy() *@Type {
 	if in == nil {
 		return nil
@@ -107,19 +107,20 @@ func(in *@Type) DeepCopy() *@Type {
 func(in *@Type) DeepCopyInto(out *@Type) {
 	@fieldsCopies
 }
-`,
-			"Type": gengo.ID(named.Obj()),
-			"fieldsCopies": (&helper.StructFieldsCopy{
+`, snippet.Args{
+			"Type": snippet.ID(named.Obj()),
+			"fieldsCopies": &helper.StructFieldsCopy{
+				Pkg:              named.Obj().Pkg(),
 				Struct:           x,
 				DeepCopyIntoName: "DeepCopyInto",
 				DeepCopyName:     "DeepCopy",
 				OnLocalDep: func(named *types.Named) {
 					defers = append(defers, named)
 				},
-			}).Snippet(c, named.Obj().Pkg()),
+			},
 		})
 	default:
-		c.Render(gengo.Snippet{gengo.T: `
+		c.RenderT(`
 func(in *@Type) DeepCopy() *@Type {
 	if in == nil {
 		return nil
@@ -133,8 +134,8 @@ func(in *@Type) DeepCopy() *@Type {
 func (in *@Type) DeepCopyInto(out *@Type) {
 	*out = *in
 }
-`,
-			"Type": gengo.ID(named.Obj()),
+`, snippet.Args{
+			"Type": snippet.ID(named.Obj()),
 		})
 	}
 

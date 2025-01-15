@@ -1,6 +1,7 @@
 package defaultergen
 
 import (
+	"github.com/octohelm/gengo/pkg/gengo/snippet"
 	"go/types"
 
 	"github.com/octohelm/gengo/pkg/gengo"
@@ -17,12 +18,13 @@ func (*defaulterGen) Name() string {
 }
 
 func (g *defaulterGen) GenerateType(c gengo.Context, t *types.Named) error {
-	c.Render(gengo.Snippet{gengo.T: `
+	c.RenderT(`
 func(v *@Type) SetDefault() {
 	// TODO
 }
 `,
-		"Type": gengo.ID(t.Obj()),
-	})
+
+		snippet.IDArg("Type", t.Obj()),
+	)
 	return nil
 }

@@ -1,13 +1,12 @@
-package gengo
+package internal
 
 import (
 	"bytes"
 	"reflect"
 	"testing"
 
-	testingx "github.com/octohelm/x/testing"
-
 	"github.com/octohelm/gengo/pkg/namer"
+	testingx "github.com/octohelm/x/testing"
 )
 
 type Item struct {
@@ -32,11 +31,11 @@ func TestDumper_TypeLit(t *testing.T) {
 
 	t.Run("TypeListWithGenerics", func(t *testing.T) {
 		testingx.Expect(t,
-			"*gengo.List[gengo.Item]",
+			"*internal.List[internal.Item]",
 			testingx.Equal(d.ReflectTypeLit(reflect.TypeOf(&List[Item]{}))))
 
 		testingx.Expect(t,
-			"*gengo.List[gengo.List[gengo.Item]]",
+			"*internal.List[internal.List[internal.Item]]",
 			testingx.Equal(d.ReflectTypeLit(reflect.TypeOf(&List[List[Item]]{}))))
 	})
 

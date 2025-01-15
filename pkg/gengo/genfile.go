@@ -2,7 +2,10 @@ package gengo
 
 import (
 	"bytes"
+	"context"
 	"fmt"
+	"github.com/octohelm/gengo/pkg/gengo/internal"
+	"github.com/octohelm/gengo/pkg/gengo/snippet"
 	"go/parser"
 	"go/scanner"
 	"go/token"
@@ -12,9 +15,8 @@ import (
 	"sort"
 	"strings"
 
-	"golang.org/x/tools/imports"
-
 	"github.com/octohelm/gengo/pkg/namer"
+	"golang.org/x/tools/imports"
 )
 
 func newGenfile() *genfile {
@@ -159,5 +161,41 @@ import (
 
 		_, _ = fmt.Fprintf(w, `)
 `)
+	}
+}
+
+type SnippetWriter interface {
+	Render(snippet snippet.Snippet)
+}
+
+func NewSnippetWriter(w io.Writer, ns namer.NameSystems) SnippetWriter {
+	return &snippetWriter{
+		Writer: w,
+		ns:     ns,
+	}
+}
+
+type snippetWriter struct {
+	ns namer.NameSystems
+
+	io.Writer
+}
+
+func (sw *snippetWriter) Dumper() *internal.Dumper {
+	if rawNamer, ok := sw.ns["raw"]; ok {
+		return internal.NewDumper(rawNamer)
+	}
+	return nil
+}
+
+func (sw *snippetWriter) Render(snippet snippet.Snippet) {
+	if snippet == nil {
+		return
+	}
+
+	if !snippet.IsNil() {
+		for code := range snippet.Frag(internal.DumperContext.Inject(context.Background(), sw.Dumper())) {
+			_, _ = io.WriteString(sw.Writer, code)
+		}
 	}
 }

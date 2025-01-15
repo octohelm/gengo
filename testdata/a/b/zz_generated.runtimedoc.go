@@ -62,7 +62,10 @@ func (v *Obj) RuntimeDoc(names ...string) ([]string, bool) {
 
 		return nil, false
 	}
-	return []string{"some object", embedDocOfObj1}, true
+	return []string{
+		"some object",
+		embedDocOfObj1,
+	}, true
 }
 
 func (v *SubObj) RuntimeDoc(names ...string) ([]string, bool) {

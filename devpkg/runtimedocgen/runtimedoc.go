@@ -5,8 +5,10 @@ import (
 	"go/ast"
 	"go/types"
 	"regexp"
+	"slices"
 
 	"github.com/octohelm/gengo/pkg/gengo"
+	"github.com/octohelm/gengo/pkg/gengo/snippet"
 )
 
 func init() {
@@ -49,7 +51,7 @@ func (g *runtimedocGen) createHelperOnce(c gengo.Context) {
 	}
 	g.helperWritten = true
 
-	c.Render(gengo.Snippet{gengo.T: `
+	c.Render(snippet.Block(`
 import _ "embed"
 
 // nolint:deadcode,unused
@@ -70,7 +72,7 @@ func runtimeDoc(v any, prefix string, names ...string) ([]string, bool) {
 	return nil, false
 }
 
-`})
+`))
 }
 
 func hasExposeField(t *types.Struct) bool {
@@ -84,7 +86,7 @@ func hasExposeField(t *types.Struct) bool {
 
 var reEmbedDoc = regexp.MustCompile(`\[\[(?P<path>[^]]+)]]`)
 
-func parseEmbed(prefix string, doc []string) (final []any, embeds []gengo.Snippet) {
+func parseEmbed(prefix string, doc []string) (final []snippet.Snippet, embeds []snippet.Snippet) {
 	for i, line := range doc {
 		if reEmbedDoc.MatchString(line) {
 			matches := reEmbedDoc.FindStringSubmatch(line)
@@ -92,16 +94,16 @@ func parseEmbed(prefix string, doc []string) (final []any, embeds []gengo.Snippe
 
 			varName := gengo.LowerCamelCase(fmt.Sprintf("embed_doc_of_%s_%d", prefix, i))
 
-			embeds = append(embeds, gengo.SnippetT(fmt.Sprintf(`
+			embeds = append(embeds, snippet.Block(fmt.Sprintf(`
 //go:embed %s
 var %s string
 `, path, varName)))
 
-			final = append(final, gengo.ID(varName))
+			final = append(final, snippet.ID(varName))
 			continue
 		}
 
-		final = append(final, line)
+		final = append(final, snippet.Value(line))
 	}
 
 	return
@@ -127,7 +129,7 @@ func (g *runtimedocGen) generateType(c gengo.Context, named *types.Named) error 
 
 		finalDoc, embeds := parseEmbed(named.Obj().Name(), doc)
 
-		c.Render(gengo.Snippet{gengo.T: `
+		c.RenderT(`
 @externalEmbeds
 func(v *@Type) RuntimeDoc(names ...string) ([]string, bool) {
 	if len(names) > 0 {
@@ -140,25 +142,17 @@ func(v *@Type) RuntimeDoc(names ...string) ([]string, bool) {
 	return @doc, true
 }
 
-`,
-			"Type": gengo.ID(named.Obj()),
-			"externalEmbeds": func(sw gengo.SnippetWriter) {
-				for _, e := range embeds {
-					sw.Render(e)
-				}
-			},
-			"doc": func(sw gengo.SnippetWriter) {
-				sw.Render(gengo.SnippetT("[]string{"))
+`, snippet.Args{
+			"Type":           snippet.ID(named.Obj()),
+			"externalEmbeds": snippet.Snippets(slices.Values(embeds)),
+			"doc": snippet.Sprintf("[]string{\n%T\n}", snippet.Snippets(func(yield func(snippet.Snippet) bool) {
 				for _, line := range finalDoc {
-					sw.Render(gengo.Snippet{
-						gengo.T: `@line,`,
-						"line":  line,
-					})
+					if !yield(snippet.Sprintf("%v,\n", line)) {
+						return
+					}
 				}
-				sw.Render(gengo.SnippetT(`
-}`))
-			},
-			"cases": func(sw gengo.SnippetWriter) {
+			})),
+			"cases": snippet.Snippets(func(yield func(snippet.Snippet) bool) {
 				for i := 0; i < x.NumFields(); i++ {
 					f := x.Field(i)
 
@@ -190,16 +184,18 @@ func(v *@Type) RuntimeDoc(names ...string) ([]string, bool) {
 						}
 					}
 
-					sw.Render(gengo.Snippet{gengo.T: `
+					if !yield(snippet.T(`
 case @fieldName:
 	return @fieldDoc, true
-`,
-						"fieldName": f.Name(),
-						"fieldDoc":  fieldDoc,
-					})
+`, snippet.Args{
+						"fieldName": snippet.Value(f.Name()),
+						"fieldDoc":  snippet.Value(fieldDoc),
+					})) {
+						return
+					}
 				}
-			},
-			"embeds": func(sw gengo.SnippetWriter) {
+			}),
+			"embeds": snippet.Snippets(func(yield func(snippet.Snippet) bool) {
 				for i := 0; i < x.NumFields(); i++ {
 					f := x.Field(i)
 
@@ -219,42 +215,44 @@ case @fieldName:
 						}
 
 						if _, ok := f.Type().(*types.Pointer); ok {
-							sw.Render(gengo.Snippet{gengo.T: `
+							if !yield(snippet.T(`
 if doc, ok := runtimeDoc(v.@fieldName, @prefix, names...); ok  {
 	return doc, ok
 }
-`,
-								"fieldName": gengo.ID(f.Name()),
-								"prefix":    prefix,
-							})
-
+`, snippet.Args{
+								"fieldName": snippet.ID(f.Name()),
+								"prefix":    snippet.Value(prefix),
+							})) {
+								return
+							}
 							continue
 						}
 
-						sw.Render(gengo.Snippet{gengo.T: `
+						if !yield(snippet.T(`
 if doc, ok := runtimeDoc(&v.@fieldName, @prefix, names...); ok  {
 	return doc, ok
 }
-`,
-							"fieldName": gengo.ID(f.Name()),
-							"prefix":    prefix,
-						})
+`, snippet.Args{
+							"fieldName": snippet.ID(f.Name()),
+							"prefix":    snippet.Value(prefix),
+						})) {
+							return
+						}
 					}
 				}
-			},
+			}),
 		})
-
 	default:
 		_, doc := c.Doc(named.Obj())
 
-		c.Render(gengo.Snippet{gengo.T: `
+		c.RenderT(`
 func(*@Type) RuntimeDoc(names ...string) ([]string, bool) {
 	return @doc, true
 }
 
-`,
-			"Type": gengo.ID(named.Obj()),
-			"doc":  doc,
+`, snippet.Args{
+			"Type": snippet.ID(named.Obj()),
+			"doc":  snippet.Value(doc),
 		})
 	}
 
