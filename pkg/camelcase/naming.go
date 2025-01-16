@@ -1,6 +1,7 @@
 package camelcase
 
 import (
+	"bytes"
 	"strings"
 	"unicode"
 
@@ -17,14 +18,14 @@ var (
 		if i == 0 {
 			return strings.ToLower(w)
 		}
-		if w == "ID" {
-			return w
+		if bytes.EqualFold([]byte(w), []byte("ID")) {
+			return "ID"
 		}
 		return cases.Title(language.Und).String(w)
 	})
 	UpperCamelCase = makeCase("", func(w string, i int) string {
-		if w == "ID" {
-			return w
+		if bytes.EqualFold([]byte(w), []byte("ID")) {
+			return "ID"
 		}
 		return cases.Title(language.Und).String(w)
 	})
