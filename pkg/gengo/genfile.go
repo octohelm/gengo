@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/octohelm/gengo/pkg/gengo/internal"
-	"github.com/octohelm/gengo/pkg/gengo/snippet"
 	"go/parser"
 	"go/scanner"
 	"go/token"
@@ -15,8 +13,10 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/octohelm/gengo/pkg/gengo/internal"
+	"github.com/octohelm/gengo/pkg/gengo/snippet"
 	"github.com/octohelm/gengo/pkg/namer"
-	"golang.org/x/tools/imports"
+	"mvdan.cc/gofumpt/format"
 )
 
 func newGenfile() *genfile {
@@ -99,9 +99,8 @@ func (ff *genfile) WriteToFile(c Context, args *GeneratorArgs) error {
 		return err
 	}
 
-	formated, err := imports.Process(filename, data, &imports.Options{
-		FormatOnly: true,
-		Comments:   true,
+	formated, err := format.Source(data, format.Options{
+		ModulePath: c.Package("").Module().Path,
 	})
 	if err != nil {
 		return err

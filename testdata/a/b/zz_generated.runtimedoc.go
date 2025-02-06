@@ -35,7 +35,6 @@ func (v *List[T]) RuntimeDoc(names ...string) ([]string, bool) {
 		switch names[0] {
 		case "Name":
 			return []string{}, true
-
 		}
 
 		return nil, false
@@ -54,7 +53,6 @@ func (v *Obj) RuntimeDoc(names ...string) ([]string, bool) {
 				"name",
 				"姓名",
 			}, true
-
 		}
 		if doc, ok := runtimeDoc(&v.SubObj, "", names...); ok {
 			return doc, ok
@@ -73,7 +71,6 @@ func (v *SubObj) RuntimeDoc(names ...string) ([]string, bool) {
 		switch names[0] {
 		case "Age":
 			return []string{}, true
-
 		}
 
 		return nil, false
