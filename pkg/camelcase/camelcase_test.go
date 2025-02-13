@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func ExampleCases() {
+func ExampleUpperCamelCase() {
 	s := "vimRPCPluginS3"
 	fmt.Println(UpperCamelCase(s))
 	fmt.Println(LowerCamelCase(s))
