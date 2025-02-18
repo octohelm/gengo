@@ -12,7 +12,6 @@ type List[T any] struct {
 }
 
 func TestRef(t *testing.T) {
-
 	tpe := reflect.TypeOf(List[string]{})
 
 	ref, _ := ParseRef(Ref(tpe.PkgPath(), tpe.Name()).String())

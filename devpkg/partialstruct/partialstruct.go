@@ -79,7 +79,6 @@ func (g *partialStructGen) GenerateType(c gengo.Context, named *types.Named) err
 						ps.Origin = x
 					}
 				}
-
 			}
 		}
 	}

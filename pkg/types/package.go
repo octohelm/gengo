@@ -1,14 +1,15 @@
 package types
 
 import (
-	"github.com/octohelm/x/ptr"
 	"go/ast"
 	"go/token"
 	"go/types"
-	"golang.org/x/tools/go/packages"
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"github.com/octohelm/x/ptr"
+	"golang.org/x/tools/go/packages"
 )
 
 type Module struct {

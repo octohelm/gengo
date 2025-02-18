@@ -3,6 +3,7 @@ package snippet
 import (
 	"context"
 	"fmt"
+	"go/types"
 	"iter"
 	"reflect"
 	"strings"
@@ -10,7 +11,6 @@ import (
 	"github.com/octohelm/gengo/pkg/gengo/internal"
 	gengotypes "github.com/octohelm/gengo/pkg/types"
 	typesx "github.com/octohelm/x/types"
-	"go/types"
 )
 
 func PkgExpose(pkgPath string, expose string) Snippet {
@@ -61,7 +61,6 @@ func (i *pkgExposer) Frag(ctx context.Context) iter.Seq[string] {
 		if !yield(d.Name(i.typeName)) {
 			return
 		}
-
 	}
 }
 

@@ -1,8 +1,9 @@
 package defaultergen
 
 import (
-	"github.com/octohelm/gengo/pkg/gengo/snippet"
 	"go/types"
+
+	"github.com/octohelm/gengo/pkg/gengo/snippet"
 
 	"github.com/octohelm/gengo/pkg/gengo"
 )

@@ -2,8 +2,9 @@ package snippet
 
 import (
 	"context"
-	"github.com/octohelm/gengo/pkg/gengo/internal"
 	"iter"
+
+	"github.com/octohelm/gengo/pkg/gengo/internal"
 )
 
 func Value(v any) Snippet {

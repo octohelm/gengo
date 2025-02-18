@@ -5,7 +5,7 @@ cover:
 	go test -v -coverprofile=coverage.txt -covermode=atomic ./pkg/...
 
 fmt:
-	goimports -l -w .
+	go tool gofumpt -l -w .
 
 dep:
 	go get -u ./...

@@ -19,7 +19,6 @@ func TestPkgGenerator(t *testing.T) {
 		},
 		OutputFileBaseName: "zz_generated",
 	})
-
 	if err != nil {
 		t.Fatal(err)
 	}

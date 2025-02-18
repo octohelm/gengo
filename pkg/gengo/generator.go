@@ -1,9 +1,8 @@
 package gengo
 
 import (
-	"go/types"
-
 	"errors"
+	"go/types"
 )
 
 var (
@@ -30,7 +29,7 @@ type Generator interface {
 type AliasGenerator interface {
 	// Name generator name
 	Name() string
-	
+
 	GenerateAliasType(Context, *types.Alias) error
 }
 
