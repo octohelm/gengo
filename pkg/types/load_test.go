@@ -8,7 +8,7 @@ import (
 )
 
 func TestLoad(t *testing.T) {
-	u, _, err := Load([]string{
+	u, err := Load([]string{
 		"github.com/octohelm/gengo/testdata/a",
 	})
 

@@ -181,19 +181,11 @@ func (pi *pkgInfo) funcResultsFrom(s *types.Signature, funcType *ast.FuncType, b
 		return nil
 	}
 
-	if v, ok := pi.funcResults.Load(funcType); ok {
-		if v != nil {
-			return v.(Results)
-		}
-	}
-
 	get, _ := pi.funcResultResolvers.LoadOrStore(funcType, sync.OnceValue(func() (finalFuncResults Results) {
 		// avoid loop
-		pi.funcResults.Store(funcType, finalFuncResults)
-
-		defer func() {
-			pi.funcResults.Store(funcType, finalFuncResults)
-		}()
+		if _, ok := pi.funcResultsResolving.LoadOrStore(funcType, true); ok {
+			return nil
+		}
 
 		n := s.Results().Len()
 		finalFuncResults = make(Results, n)

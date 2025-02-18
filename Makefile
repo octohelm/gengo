@@ -1,8 +1,8 @@
 test:
 	go test -v ./pkg/...
 
-cover:
-	go test -v -coverprofile=coverage.txt -covermode=atomic ./pkg/...
+test.race:
+	CGO_ENABLED=1 go test -v -race ./pkg/...
 
 fmt:
 	go tool gofumpt -l -w .

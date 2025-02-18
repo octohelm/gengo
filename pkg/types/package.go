@@ -21,11 +21,12 @@ type Package interface {
 	Pkg() *types.Package
 	// Imports of go package
 	Imports() map[string]Package
-
 	// Module of go package
 	Module() *packages.Module
 	// SourceDir code source absolute dir
 	SourceDir() string
+	// FileSet return file set when load
+	FileSet() *token.FileSet
 	// Files ast files of package
 	Files() []*ast.File
 	// Decl ast Decl for pos
@@ -65,22 +66,21 @@ type ModInfo struct {
 
 func newPkg(pkg *packages.Package, u *Universe) Package {
 	p := &pkgInfo{
-		u: u,
-
+		u:       u,
 		Package: pkg,
 
-		endLineToCommentGroup:         map[fileLine]*ast.CommentGroup{},
-		endLineToTrailingCommentGroup: map[fileLine]*ast.CommentGroup{},
+		imports: make(map[string]Package),
 
-		signatures: map[*types.Signature]ast.Node{},
-		funcDecls:  map[*types.Func]ast.Node{},
+		constants: make(map[string]*types.Const),
+		types:     make(map[string]*types.TypeName),
+		funcs:     make(map[string]*types.Func),
+		methods:   make(map[*types.Named][]*types.Func),
 
-		constants: map[string]*types.Const{},
-		types:     map[string]*types.TypeName{},
-		funcs:     map[string]*types.Func{},
+		endLineToCommentGroup:         make(map[fileLine]*ast.CommentGroup),
+		endLineToTrailingCommentGroup: make(map[fileLine]*ast.CommentGroup),
 
-		methods: map[*types.Named][]*types.Func{},
-		imports: map[string]Package{},
+		funcDecls:  make(map[*types.Func]ast.Node),
+		signatures: make(map[*types.Signature]ast.Node),
 	}
 
 	for pkgPath := range pkg.Imports {
@@ -239,8 +239,8 @@ type pkgInfo struct {
 	funcDecls  map[*types.Func]ast.Node
 	signatures map[*types.Signature]ast.Node
 
-	funcResults         sync.Map
-	funcResultResolvers sync.Map
+	funcResultResolvers  sync.Map
+	funcResultsResolving sync.Map
 
 	sourceDir *string
 }
@@ -266,6 +266,10 @@ func (pi *pkgInfo) SourceDir() string {
 	pi.sourceDir = ptr.Ptr(sourceDir)
 
 	return sourceDir
+}
+
+func (pi *pkgInfo) FileSet() *token.FileSet {
+	return pi.u.fset
 }
 
 func (pi *pkgInfo) Pkg() *types.Package {

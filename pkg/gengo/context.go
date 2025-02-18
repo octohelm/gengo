@@ -6,6 +6,8 @@ import (
 	"go/token"
 	"go/types"
 	"log/slog"
+	"os"
+	"path/filepath"
 	"reflect"
 	"sort"
 	"strings"
@@ -24,36 +26,50 @@ type Executor interface {
 }
 
 func NewContext(args *GeneratorArgs) (Executor, error) {
-	u, pkgPaths, err := gengotypes.Load(args.Entrypoint)
+	u, err := gengotypes.Load(args.Entrypoint)
 	if err != nil {
 		return nil, err
 	}
 	c := &gengoCtx{
-		pkgPaths: pkgPaths,
+		universe: u,
 		args:     args,
-		universe: *u,
 	}
 	return c, nil
 }
 
 type Context interface {
+	IsZero() bool
+
+	Logger() logr.Logger
+	Defer(func(c Context) error)
+
 	LocateInPackage(pos token.Pos) gengotypes.Package
 	Package(importPath string) gengotypes.Package
 	Doc(typ types.Object) (Tags, []string)
-	Logger() logr.Logger
+
 	Render(snippet snippet.Snippet)
 	RenderT(template string, args ...snippet.TArg)
 }
 
 type gengoCtx struct {
-	pkgPaths map[string]bool
 	args     *GeneratorArgs
+	universe *gengotypes.Universe
 
-	pkgTags  map[string][]string
-	pkg      gengotypes.Package
-	universe gengotypes.Universe
-	genfile  *genfile
-	l        logr.Logger
+	pkgTags map[string][]string
+	pkg     gengotypes.Package
+	genfile *genfile
+
+	defers []func(ctx Context) error
+
+	l logr.Logger
+}
+
+func (c *gengoCtx) IsZero() bool {
+	return c.genfile.IsZero()
+}
+
+func (c *gengoCtx) Defer(fn func(c Context) error) {
+	c.defers = append(c.defers, fn)
 }
 
 func (c *gengoCtx) Logger() logr.Logger {
@@ -73,17 +89,31 @@ func (c *gengoCtx) Writer() SnippetWriter {
 }
 
 func (c *gengoCtx) Execute(ctx corecontext.Context, generators ...Generator) error {
-	cc, l := logr.FromContext(ctx).Start(ctx, "Gen")
-	defer l.End()
+	eg := &errgroup.Group{}
 
-	for pkgPath := range c.pkgPaths {
-		if err := c.pkgExecute(cc, pkgPath, generators...); err != nil {
-			return err
+	for pkgPath, direct := range c.universe.LocalPkgPaths() {
+		if !c.args.All {
+			if !direct {
+				continue
+			}
 		}
+
+		eg.Go(func() error {
+			cc, l := logr.FromContext(ctx).WithValues(slog.String("path", pkgPath)).Start(ctx, "gen")
+			defer l.End()
+
+			if err := c.pkgExecute(cc, pkgPath, generators...); err != nil {
+				return err
+			}
+
+			l.Info("completed")
+
+			return nil
+		})
+
 	}
 
-	l.Info("all done.")
-	return nil
+	return eg.Wait()
 }
 
 func (c *gengoCtx) pkgExecute(ctx corecontext.Context, pkg string, generators ...Generator) error {
@@ -95,6 +125,8 @@ func (c *gengoCtx) pkgExecute(ctx corecontext.Context, pkg string, generators ..
 		return fmt.Errorf("invalid pkg `%s`", pkg)
 	}
 
+	generatedFiles := make(map[string]string)
+
 	pkgCtx := &gengoCtx{
 		universe: c.universe,
 		args:     c.args,
@@ -103,6 +135,12 @@ func (c *gengoCtx) pkgExecute(ctx corecontext.Context, pkg string, generators ..
 	}
 
 	for _, f := range p.Files() {
+		fileFullname := p.FileSet().File(f.FileStart).Name()
+		filename := filepath.Base(fileFullname)
+		if strings.HasPrefix(filename, c.args.OutputFileBaseName+".") {
+			generatedFiles[filename] = fileFullname
+		}
+
 		if f.Doc != nil && len(f.Doc.List) > 0 {
 			tags, _ := gengotypes.ExtractCommentTags(strings.Split(f.Doc.Text(), "\n"))
 			for k := range tags {
@@ -133,11 +171,19 @@ func (c *gengoCtx) pkgExecute(ctx corecontext.Context, pkg string, generators ..
 			pkgCtxForGen.genfile.generator = g
 			pkgCtxForGen.l = logr.FromContext(ctx).WithValues("gengo", g.Name())
 
-			if e := pkgCtxForGen.doGenerate(ctx, g); e != nil {
-				return fmt.Errorf("`%s` generate failed for %s: %w", g.Name(), pkgCtx.pkg.Pkg().Path(), e)
+			if err := pkgCtxForGen.doGenerate(ctx, g); err != nil {
+				return fmt.Errorf("`%s` generate failed for %s: %w", g.Name(), pkgCtx.pkg.Pkg().Path(), err)
 			}
 
-			gfs.Store(g.Name(), pkgCtxForGen.genfile)
+			for _, fn := range pkgCtxForGen.defers {
+				if err := fn(pkgCtxForGen); err != nil {
+					return fmt.Errorf("`%s` defer generate failed for %s: %w", g.Name(), pkgCtx.pkg.Pkg().Path(), err)
+				}
+			}
+
+			if !pkgCtxForGen.IsZero() {
+				gfs.Store(g.Name(), pkgCtxForGen.genfile)
+			}
 
 			return nil
 		})
@@ -148,8 +194,20 @@ func (c *gengoCtx) pkgExecute(ctx corecontext.Context, pkg string, generators ..
 	}
 
 	for _, w := range gfs.Range {
-		if err := w.(*genfile).WriteToFile(pkgCtx, c.args); err != nil {
+		gfile := w.(*genfile)
+
+		if err := gfile.WriteToFile(pkgCtx, c.args); err != nil {
 			return err
+		}
+
+		delete(generatedFiles, gfile.Filename(c.args))
+	}
+
+	if len(generatedFiles) > 0 {
+		for _, fullFilename := range generatedFiles {
+			if err := os.RemoveAll(fullFilename); err != nil {
+				return err
+			}
 		}
 	}
 

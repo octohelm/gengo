@@ -1,6 +1,7 @@
 package runtimedocgen
 
 import (
+	"embed"
 	"fmt"
 	"go/ast"
 	"go/types"
@@ -29,11 +30,9 @@ func (g *runtimedocGen) GenerateType(c gengo.Context, named *types.Named) error 
 	if _, ok := named.Obj().Type().Underlying().(*types.Interface); ok {
 		return gengo.ErrSkip
 	}
-
 	if _, ok := named.Obj().Type().Underlying().(*types.Alias); ok {
 		return gengo.ErrSkip
 	}
-
 	if !ast.IsExported(named.Obj().Name()) {
 		return gengo.ErrSkip
 	}
@@ -42,7 +41,18 @@ func (g *runtimedocGen) GenerateType(c gengo.Context, named *types.Named) error 
 		g.processed = map[*types.Named]bool{}
 	}
 
-	return g.generateType(c, named)
+	if err := g.generateType(c, named); err != nil {
+		return err
+	}
+
+	if !c.IsZero() {
+		c.Defer(func(c gengo.Context) error {
+			g.createHelperOnce(c)
+			return nil
+		})
+	}
+
+	return nil
 }
 
 func (g *runtimedocGen) createHelperOnce(c gengo.Context) {
@@ -52,8 +62,6 @@ func (g *runtimedocGen) createHelperOnce(c gengo.Context) {
 	g.helperWritten = true
 
 	c.Render(snippet.Block(`
-import _ "embed"
-
 // nolint:deadcode,unused
 func runtimeDoc(v any, prefix string, names ...string) ([]string, bool) {
 	if c, ok := v.(interface {
@@ -71,7 +79,6 @@ func runtimeDoc(v any, prefix string, names ...string) ([]string, bool) {
 	}
 	return nil, false
 }
-
 `))
 }
 
@@ -91,14 +98,17 @@ func parseEmbed(prefix string, doc []string) (final []snippet.Snippet, embeds []
 		if reEmbedDoc.MatchString(line) {
 			matches := reEmbedDoc.FindStringSubmatch(line)
 			path := matches[reEmbedDoc.SubexpIndex("path")]
-
 			varName := gengo.LowerCamelCase(fmt.Sprintf("embed_doc_of_%s_%d", prefix, i))
 
-			embeds = append(embeds, snippet.Block(fmt.Sprintf(`
-//go:embed %s
-var %s string
-`, path, varName)))
-
+			embeds = append(embeds, snippet.T(`
+@embed
+var @varName string
+var _ @embedFs
+`, snippet.Args{
+				"varName": snippet.ID(varName),
+				"embed":   snippet.GoDirective("embed", path),
+				"embedFs": snippet.PkgExposeFor[embed.FS](),
+			}))
 			final = append(final, snippet.ID(varName))
 			continue
 		}
@@ -114,8 +124,6 @@ func (g *runtimedocGen) generateType(c gengo.Context, named *types.Named) error 
 		return nil
 	}
 	g.processed[named] = true
-
-	g.createHelperOnce(c)
 
 	defers := make([]*types.Named, 0)
 

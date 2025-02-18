@@ -18,6 +18,7 @@ func TestPkgGenerator(t *testing.T) {
 			//"github.com/octohelm/gengo/testdata/a/c",
 		},
 		OutputFileBaseName: "zz_generated",
+		All:                true,
 	})
 	if err != nil {
 		t.Fatal(err)

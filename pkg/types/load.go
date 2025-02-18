@@ -3,6 +3,7 @@ package types
 import (
 	"fmt"
 	"go/token"
+	"iter"
 	"path/filepath"
 
 	"golang.org/x/tools/go/packages"
@@ -16,7 +17,7 @@ const (
 	LoadAllSyntax = LoadSyntax | packages.NeedDeps | packages.NeedModule
 )
 
-func Load(patterns []string) (*Universe, map[string]bool, error) {
+func Load(patterns []string) (*Universe, error) {
 	fset := token.NewFileSet()
 
 	c := &packages.Config{
@@ -26,15 +27,17 @@ func Load(patterns []string) (*Universe, map[string]bool, error) {
 
 	pkgs, err := packages.Load(c, patterns...)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	u := &Universe{
 		fset: fset,
 		pkgs: map[string]Package{},
 	}
+
+	directPkgPaths := map[string]bool{}
+	localPkgPaths := map[string]bool{}
 	rootPkgPaths := map[string]bool{}
-	pkgPaths := map[string]bool{}
 
 	var register func(p *packages.Package)
 	register = func(p *packages.Package) {
@@ -60,36 +63,48 @@ func Load(patterns []string) (*Universe, map[string]bool, error) {
 		for rootPkgPath := range rootPkgPaths {
 			// when is sub pkg of root pkg
 			if p.Module != nil && rootPkgPath == p.Module.Path {
-				pkgPaths[p.PkgPath] = true
+				localPkgPaths[p.PkgPath] = directPkgPaths[p.PkgPath]
 			}
 		}
 	}
 
 	for i := range pkgs {
 		p := pkgs[i]
-
 		if len(p.Errors) > 0 {
 			for i := range p.Errors {
 				e := p.Errors[i]
 				if e.Kind == packages.ListError {
-					return nil, nil, e
+					return nil, e
 				}
 			}
 		}
-
 		rootPkgPaths[p.Module.Path] = true
+		directPkgPaths[p.PkgPath] = true
 	}
 
 	for i := range pkgs {
 		register(pkgs[i])
 	}
 
-	return u, pkgPaths, nil
+	u.localPkgPaths = localPkgPaths
+
+	return u, nil
 }
 
 type Universe struct {
-	fset *token.FileSet
-	pkgs map[string]Package
+	fset          *token.FileSet
+	pkgs          map[string]Package
+	localPkgPaths map[string]bool
+}
+
+func (v *Universe) LocalPkgPaths() iter.Seq2[string, bool] {
+	return func(yield func(string, bool) bool) {
+		for pkgPath, direct := range v.localPkgPaths {
+			if !yield(pkgPath, direct) {
+				return
+			}
+		}
+	}
 }
 
 func (u *Universe) Package(pkgPath string) Package {

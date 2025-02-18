@@ -36,6 +36,10 @@ type genfile struct {
 	SnippetWriter
 }
 
+func (c *genfile) IsZero() bool {
+	return c.body == nil || c.body.Len() == 0
+}
+
 func (ff *genfile) InitWith(c Context) error {
 	pkg := c.Package("")
 	pkgPath := pkg.Pkg().Path()
@@ -45,6 +49,10 @@ func (ff *genfile) InitWith(c Context) error {
 	})
 
 	return nil
+}
+
+func (ff *genfile) Filename(args *GeneratorArgs) string {
+	return fmt.Sprintf("%s.%s.go", args.OutputFileBaseName, ff.generator.Name())
 }
 
 func (ff *genfile) WriteToFile(c Context, args *GeneratorArgs) error {
@@ -70,7 +78,7 @@ package %s
 		return err
 	}
 
-	filename := path.Join(c.Package("").SourceDir(), fmt.Sprintf("%s.%s.go", args.OutputFileBaseName, ff.generator.Name()))
+	filename := path.Join(c.Package("").SourceDir(), ff.Filename(args))
 
 	data := src.Bytes()
 

@@ -11,12 +11,14 @@ var (
 )
 
 type GeneratorArgs struct {
+	// Globals contains tags for all pkgs
+	Globals map[string][]string
 	// Entrypoint should be import path or valid related dir path
 	Entrypoint []string
 	// OutputFileBaseName is the prefix of generated filename
 	OutputFileBaseName string
-	// Globals contains tags for all pkgs
-	Globals map[string][]string
+	// All enabled, will process all deps
+	All bool
 }
 
 type Generator interface {
