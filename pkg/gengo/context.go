@@ -92,15 +92,15 @@ func (c *gengoCtx) Execute(ctx corecontext.Context, generators ...Generator) err
 	eg := &errgroup.Group{}
 
 	for pkgPath, direct := range c.universe.LocalPkgPaths() {
-		if !c.args.All {
-			if !direct {
-				continue
-			}
+		if !c.args.All && !direct {
+			continue
 		}
 
 		eg.Go(func() error {
 			cc, l := logr.FromContext(ctx).WithValues(slog.String("path", pkgPath)).Start(ctx, "gen")
 			defer l.End()
+
+			l.Info("generating")
 
 			if err := c.pkgExecute(cc, pkgPath, generators...); err != nil {
 				return err

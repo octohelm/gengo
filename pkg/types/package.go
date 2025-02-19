@@ -1,15 +1,14 @@
 package types
 
 import (
+	"github.com/octohelm/x/ptr"
 	"go/ast"
 	"go/token"
 	"go/types"
+	"golang.org/x/tools/go/packages"
 	"path/filepath"
 	"strings"
 	"sync"
-
-	"github.com/octohelm/x/ptr"
-	"golang.org/x/tools/go/packages"
 )
 
 type Module struct {
@@ -239,89 +238,87 @@ type pkgInfo struct {
 	funcDecls  map[*types.Func]ast.Node
 	signatures map[*types.Signature]ast.Node
 
-	funcResultResolvers  sync.Map
-	funcResultsResolving sync.Map
-
-	sourceDir *string
+	sourceDir   *string
+	funcResults sync.Map
 }
 
-func (pi *pkgInfo) SourceDir() string {
-	if pi.sourceDir != nil {
-		return *pi.sourceDir
+func (p *pkgInfo) SourceDir() string {
+	if p.sourceDir != nil {
+		return *p.sourceDir
 	}
 
 	sourceDir := func() string {
-		if pi == nil || pi.Package == nil {
+		if p == nil || p.Package == nil {
 			return ""
 		}
-		if pi.Module() == nil {
+		if p.Module() == nil {
 			return ""
 		}
-		if pi.Package.PkgPath == pi.Module().Path {
-			return pi.Module().Dir
+		if p.Package.PkgPath == p.Module().Path {
+			return p.Module().Dir
 		}
-		return filepath.Join(pi.Module().Dir, pi.Package.PkgPath[len(pi.Module().Path):])
+		return filepath.Join(p.Module().Dir, p.Package.PkgPath[len(p.Module().Path):])
 	}()
 
-	pi.sourceDir = ptr.Ptr(sourceDir)
+	p.sourceDir = ptr.Ptr(sourceDir)
 
 	return sourceDir
 }
 
-func (pi *pkgInfo) FileSet() *token.FileSet {
-	return pi.u.fset
+func (p *pkgInfo) FileSet() *token.FileSet {
+	return p.u.fset
 }
 
-func (pi *pkgInfo) Pkg() *types.Package {
-	return pi.Package.Types
+func (p *pkgInfo) Pkg() *types.Package {
+	return p.Package.Types
 }
 
-func (pi *pkgInfo) ObjectOf(id *ast.Ident) types.Object {
-	return pi.Package.TypesInfo.ObjectOf(id)
+func (p *pkgInfo) ObjectOf(id *ast.Ident) types.Object {
+	return p.Package.TypesInfo.ObjectOf(id)
 }
 
-func (pi *pkgInfo) Module() *packages.Module {
-	return pi.Package.Module
+func (p *pkgInfo) Module() *packages.Module {
+	return p.Package.Module
 }
 
-func (pi *pkgInfo) Imports() map[string]Package {
-	return pi.imports
+func (p *pkgInfo) Imports() map[string]Package {
+	return p.imports
 }
 
-func (pi *pkgInfo) Files() []*ast.File {
-	return pi.Package.Syntax
+func (p *pkgInfo) Files() []*ast.File {
+	return p.Package.Syntax
 }
 
-func (pi *pkgInfo) Eval(expr ast.Expr) (types.TypeAndValue, error) {
-	return types.Eval(pi.Package.Fset, pi.Package.Types, expr.Pos(), StringifyNode(pi.Package.Fset, expr))
+func (p *pkgInfo) Eval(expr ast.Expr) (types.TypeAndValue, error) {
+	return types.Eval(p.Package.Fset, p.Package.Types, expr.Pos(), StringifyNode(p.Package.Fset, expr))
 }
 
-func (pi *pkgInfo) Constant(n string) *types.Const {
-	return pi.constants[n]
+func (p *pkgInfo) Constant(n string) *types.Const {
+	return p.constants[n]
 }
 
-func (pi *pkgInfo) Constants() map[string]*types.Const {
-	return pi.constants
+func (p *pkgInfo) Constants() map[string]*types.Const {
+	return p.constants
 }
 
-func (pi *pkgInfo) Type(n string) *types.TypeName {
-	return pi.types[n]
+func (p *pkgInfo) Type(n string) *types.TypeName {
+	return p.types[n]
 }
 
-func (pi *pkgInfo) Types() map[string]*types.TypeName {
-	return pi.types
+func (p *pkgInfo) Types() map[string]*types.TypeName {
+	return p.types
 }
 
-func (pi *pkgInfo) Function(n string) *types.Func {
-	return pi.funcs[n]
+func (p *pkgInfo) Function(n string) *types.Func {
+	return p.funcs[n]
 }
 
-func (pi *pkgInfo) Functions() map[string]*types.Func {
-	return pi.funcs
+func (p *pkgInfo) Functions() map[string]*types.Func {
+	return p.funcs
 }
 
-func (pi *pkgInfo) MethodsOf(n *types.Named, ptr bool) []*types.Func {
-	funcs, _ := pi.methods[n]
+func (p *pkgInfo) MethodsOf(n *types.Named, ptr bool) []*types.Func {
+	funcs, _ := p.methods[n]
 
 	if ptr {
 		return funcs
@@ -340,12 +337,12 @@ func (pi *pkgInfo) MethodsOf(n *types.Named, ptr bool) []*types.Func {
 	return notPtrMethods
 }
 
-func (pi *pkgInfo) Position(pos token.Pos) token.Position {
-	return pi.Package.Fset.Position(pos)
+func (p *pkgInfo) Position(pos token.Pos) token.Position {
+	return p.Package.Fset.Position(pos)
 }
 
-func (pi *pkgInfo) Decl(pos token.Pos) ast.Decl {
-	if f := pi.File(pos); f != nil {
+func (p *pkgInfo) Decl(pos token.Pos) ast.Decl {
+	if f := p.File(pos); f != nil {
 		for _, d := range f.Decls {
 			if d.Pos() <= pos && pos <= d.End() {
 				return d
@@ -355,8 +352,8 @@ func (pi *pkgInfo) Decl(pos token.Pos) ast.Decl {
 	return nil
 }
 
-func (pi *pkgInfo) File(pos token.Pos) *ast.File {
-	for _, f := range pi.Files() {
+func (p *pkgInfo) File(pos token.Pos) *ast.File {
+	for _, f := range p.Files() {
 		if f.Pos() <= pos && pos <= f.End() {
 			return f
 		}
@@ -364,25 +361,25 @@ func (pi *pkgInfo) File(pos token.Pos) *ast.File {
 	return nil
 }
 
-func (pi *pkgInfo) Doc(pos token.Pos) (map[string][]string, []string) {
-	return ExtractCommentTags(commentLinesFrom(pi.priorCommentLines(pos, -1)))
+func (p *pkgInfo) Doc(pos token.Pos) (map[string][]string, []string) {
+	return ExtractCommentTags(commentLinesFrom(p.priorCommentLines(pos, -1)))
 }
 
-func (pi *pkgInfo) Comment(pos token.Pos) []string {
-	return commentLinesFrom(pi.priorCommentLines(pos, 0))
+func (p *pkgInfo) Comment(pos token.Pos) []string {
+	return commentLinesFrom(p.priorCommentLines(pos, 0))
 }
 
-func (pi *pkgInfo) priorCommentLines(pos token.Pos, deltaLines int) *ast.CommentGroup {
-	position := pi.Package.Fset.Position(pos)
+func (p *pkgInfo) priorCommentLines(pos token.Pos, deltaLines int) *ast.CommentGroup {
+	position := p.Package.Fset.Position(pos)
 	key := fileLine{position.Filename, position.Line + deltaLines}
 	if deltaLines == 0 {
 		// should ignore trailing comments
 		// when deltaLines eq 0 means find trailing comments
-		if lines, ok := pi.endLineToTrailingCommentGroup[key]; ok {
+		if lines, ok := p.endLineToTrailingCommentGroup[key]; ok {
 			return lines
 		}
 	}
-	return pi.endLineToCommentGroup[key]
+	return p.endLineToCommentGroup[key]
 }
 
 type fileLine struct {

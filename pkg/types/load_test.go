@@ -60,7 +60,7 @@ func TestLoad(t *testing.T) {
 		funcResults := map[string]string{
 			"FuncReturnWithInterfaceCallSingle": `(string)`,
 			"FuncReturnWithInterfaceCall":       `(string, error)`,
-			"FuncWithCallChain":                 `(untyped nil | *string | *string, error | untyped nil | untyped nil)`,
+			"FuncWithCallChain":                 `(untyped nil | *string, error | untyped nil | untyped nil)`,
 			"FuncSingleReturn":                  `(2)`,
 			"FuncSelectExprReturn":              `(string)`,
 			"FuncWillCall":                      `(2, github.com/octohelm/gengo/testdata/a.String)`,
@@ -73,7 +73,7 @@ func TestLoad(t *testing.T) {
 			"FuncCallWithFuncLit":               `(1, "s")`,
 			"FuncWithImportedCall":              `(int)`,
 			"FuncCurryCall":                     `(int)`,
-			"FuncWithGenerics":                  `(*github.com/octohelm/gengo/testdata/a.Node | untyped nil, error | untyped nil)`,
+			"FuncWithGenerics":                  `(*github.com/octohelm/gengo/testdata/a.Node | untyped nil, error)`,
 		}
 
 		for k, r := range funcResults {
