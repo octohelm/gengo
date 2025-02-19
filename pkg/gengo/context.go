@@ -59,13 +59,15 @@ type gengoCtx struct {
 	pkg     gengotypes.Package
 	genfile *genfile
 
+	ignore bool
+
 	defers []func(ctx Context) error
 
 	l logr.Logger
 }
 
 func (c *gengoCtx) IsZero() bool {
-	return c.genfile.IsZero()
+	return c.genfile.IsZero() && !c.ignore
 }
 
 func (c *gengoCtx) Defer(fn func(c Context) error) {
@@ -99,8 +101,6 @@ func (c *gengoCtx) Execute(ctx corecontext.Context, generators ...Generator) err
 		eg.Go(func() error {
 			cc, l := logr.FromContext(ctx).WithValues(slog.String("path", pkgPath)).Start(ctx, "gen")
 			defer l.End()
-
-			l.Info("generating")
 
 			if err := c.pkgExecute(cc, pkgPath, generators...); err != nil {
 				return err
@@ -289,6 +289,8 @@ func (c *gengoCtx) doGenerateType(ctx corecontext.Context, g Generator, x *types
 		}
 		if errors.Is(err, ErrIgnore) {
 			l.Warn(err)
+			// mark ignore to avoid remove previous generated
+			c.ignore = true
 			return nil
 		}
 		return err

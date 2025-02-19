@@ -3,7 +3,7 @@ module github.com/octohelm/gengo
 go 1.24.0
 
 require (
-	github.com/go-courier/logr v0.3.1
+	github.com/go-courier/logr v0.3.2
 	github.com/octohelm/x v0.0.0-20250213100717-a5d72cc790e0
 	github.com/onsi/gomega v1.36.2
 	golang.org/x/sync v0.11.0
