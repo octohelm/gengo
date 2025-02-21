@@ -100,6 +100,13 @@ func (c *gengoCtx) Execute(ctx corecontext.Context, generators ...Generator) err
 
 		eg.Go(func() error {
 			cc, l := logr.FromContext(ctx).WithValues(slog.String("path", pkgPath)).Start(ctx, "gen")
+
+			defer func() {
+				if e := recover(); e != nil {
+					l.Error(fmt.Errorf("panic: %#v", e))
+				}
+			}()
+
 			defer l.End()
 
 			if err := c.pkgExecute(cc, pkgPath, generators...); err != nil {
@@ -242,6 +249,12 @@ func (c *gengoCtx) doGenerate(ctx corecontext.Context, g Generator) error {
 	if c.pkg == nil {
 		return nil
 	}
+
+	defer func() {
+		if e := recover(); e != nil {
+			logr.FromContext(ctx).Error(fmt.Errorf("doGenerate panic: %#v", e))
+		}
+	}()
 
 	pkgTypes := c.pkg.Types()
 
