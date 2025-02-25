@@ -18,7 +18,6 @@ import (
 	"github.com/octohelm/gengo/pkg/gengo/snippet"
 	gengotypes "github.com/octohelm/gengo/pkg/types"
 	reflectx "github.com/octohelm/x/reflect"
-	"golang.org/x/sync/errgroup"
 )
 
 type Executor interface {
@@ -33,6 +32,7 @@ func NewContext(args *GeneratorArgs) (Executor, error) {
 	c := &gengoCtx{
 		universe: u,
 		args:     args,
+		l:        newLogger(),
 	}
 	return c, nil
 }
@@ -91,41 +91,28 @@ func (c *gengoCtx) Writer() SnippetWriter {
 }
 
 func (c *gengoCtx) Execute(ctx corecontext.Context, generators ...Generator) error {
-	eg := &errgroup.Group{}
-
 	for pkgPath, direct := range c.universe.LocalPkgPaths() {
 		if !c.args.All && !direct {
 			continue
 		}
 
-		eg.Go(func() error {
-			cc, l := logr.FromContext(ctx).WithValues(slog.String("path", pkgPath)).Start(ctx, "gen")
-
-			defer func() {
-				if e := recover(); e != nil {
-					l.Error(fmt.Errorf("panic: %#v", e))
-				}
-			}()
-
-			defer l.End()
-
-			if err := c.pkgExecute(cc, pkgPath, generators...); err != nil {
-				return err
-			}
-
-			l.Info("completed")
-
-			return nil
-		})
-
+		if err := c.pkgExecute(logr.LoggerInjectContext(ctx, c.l), pkgPath, generators...); err != nil {
+			return err
+		}
 	}
 
-	return eg.Wait()
+	return nil
 }
 
-func (c *gengoCtx) pkgExecute(ctx corecontext.Context, pkg string, generators ...Generator) error {
-	ctx, l := logr.FromContext(ctx).Start(ctx, pkg)
+func (c *gengoCtx) pkgExecute(pctx corecontext.Context, pkg string, generators ...Generator) (finalErr error) {
+	ctx, l := logr.FromContext(pctx).Start(pctx, "generate", slog.String("scope", pkg))
 	defer l.End()
+
+	defer func() {
+		if finalErr != nil {
+			l.Error(finalErr)
+		}
+	}()
 
 	p := c.universe.Package(pkg)
 	if p == nil {
@@ -157,47 +144,37 @@ func (c *gengoCtx) pkgExecute(ctx corecontext.Context, pkg string, generators ..
 	}
 
 	gfs := sync.Map{}
-	eg := &errgroup.Group{}
 
-	for i := range generators {
-		eg.Go(func() error {
-			pkgCtxForGen := &gengoCtx{
-				args:     pkgCtx.args,
-				universe: pkgCtx.universe,
-				pkg:      pkgCtx.pkg,
-				pkgTags:  pkgCtx.pkgTags,
-				genfile:  newGenfile(),
+	for _, gen := range generators {
+		pkgCtxForGen := &gengoCtx{
+			args:     pkgCtx.args,
+			universe: pkgCtx.universe,
+			pkg:      pkgCtx.pkg,
+			pkgTags:  pkgCtx.pkgTags,
+			genfile:  newGenfile(gen.Name()),
+		}
+
+		if err := pkgCtxForGen.genfile.InitWith(pkgCtxForGen); err != nil {
+			return err
+		}
+
+		g := pkgCtxForGen.New(gen)
+
+		pkgCtxForGen.l = l.WithValues("gengo", g.Name())
+
+		if err := pkgCtxForGen.doGenerate(ctx, g); err != nil {
+			return fmt.Errorf("`%s` generate failed for %s: %w", g.Name(), pkgCtx.pkg.Pkg().Path(), err)
+		}
+
+		for _, fn := range pkgCtxForGen.defers {
+			if err := fn(pkgCtxForGen); err != nil {
+				return fmt.Errorf("`%s` defer generate failed for %s: %w", g.Name(), pkgCtx.pkg.Pkg().Path(), err)
 			}
+		}
 
-			if err := pkgCtxForGen.genfile.InitWith(pkgCtxForGen); err != nil {
-				return err
-			}
-
-			g := pkgCtxForGen.New(generators[i])
-
-			pkgCtxForGen.genfile.generator = g
-			pkgCtxForGen.l = logr.FromContext(ctx).WithValues("gengo", g.Name())
-
-			if err := pkgCtxForGen.doGenerate(ctx, g); err != nil {
-				return fmt.Errorf("`%s` generate failed for %s: %w", g.Name(), pkgCtx.pkg.Pkg().Path(), err)
-			}
-
-			for _, fn := range pkgCtxForGen.defers {
-				if err := fn(pkgCtxForGen); err != nil {
-					return fmt.Errorf("`%s` defer generate failed for %s: %w", g.Name(), pkgCtx.pkg.Pkg().Path(), err)
-				}
-			}
-
-			if !pkgCtxForGen.IsZero() {
-				gfs.Store(g.Name(), pkgCtxForGen.genfile)
-			}
-
-			return nil
-		})
-	}
-
-	if err := eg.Wait(); err != nil {
-		return err
+		if !pkgCtxForGen.IsZero() {
+			gfs.Store(g.Name(), pkgCtxForGen.genfile)
+		}
 	}
 
 	for _, w := range gfs.Range {
@@ -252,7 +229,7 @@ func (c *gengoCtx) doGenerate(ctx corecontext.Context, g Generator) error {
 
 	defer func() {
 		if e := recover(); e != nil {
-			logr.FromContext(ctx).Error(fmt.Errorf("doGenerate panic: %#v", e))
+			c.l.Error(fmt.Errorf("doGenerate panic: %#v", e))
 		}
 	}()
 
@@ -282,7 +259,7 @@ func (c *gengoCtx) doGenerate(ctx corecontext.Context, g Generator) error {
 			tags, _ := c.Doc(x.Obj())
 
 			if IsGeneratorEnabled(g, tags) {
-				if err := c.doGenerateType(ctx, g, x); err != nil {
+				if err := c.doGenerateNamedType(ctx, g, x); err != nil {
 					return err
 				}
 			}
@@ -292,8 +269,8 @@ func (c *gengoCtx) doGenerate(ctx corecontext.Context, g Generator) error {
 	return nil
 }
 
-func (c *gengoCtx) doGenerateType(ctx corecontext.Context, g Generator, x *types.Named) error {
-	_, l := logr.FromContext(ctx).WithValues(slog.String("target", x.String())).Start(ctx, g.Name())
+func (c *gengoCtx) doGenerateNamedType(pctx corecontext.Context, g Generator, x *types.Named) error {
+	_, l := c.l.Start(pctx, "debug: generate named", slog.String("scope", x.Obj().Pkg().Path()), slog.String("type", x.Obj().Name()))
 	defer l.End()
 
 	if err := g.GenerateType(c, x); err != nil {
@@ -309,13 +286,11 @@ func (c *gengoCtx) doGenerateType(ctx corecontext.Context, g Generator, x *types
 		return err
 	}
 
-	l.Debug("generated.")
-
 	return nil
 }
 
-func (c *gengoCtx) doGenerateAliasType(ctx corecontext.Context, g AliasGenerator, x *types.Alias) error {
-	_, l := logr.FromContext(ctx).WithValues(slog.String("target", x.String())).Start(ctx, g.Name())
+func (c *gengoCtx) doGenerateAliasType(pctx corecontext.Context, g AliasGenerator, x *types.Alias) error {
+	_, l := c.l.Start(pctx, "debug: generate alias", slog.String("scope", x.Obj().Pkg().Path()), slog.String("type", x.Obj().Name()))
 	defer l.End()
 
 	if err := g.GenerateAliasType(c, x); err != nil {
@@ -328,8 +303,6 @@ func (c *gengoCtx) doGenerateAliasType(ctx corecontext.Context, g AliasGenerator
 		}
 		return err
 	}
-
-	l.Debug("generated.")
 
 	return nil
 }

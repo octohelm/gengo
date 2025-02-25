@@ -9,7 +9,7 @@ import (
 func (p *pkgInfo) ResultsOf(typeFunc *types.Func) (results Results, n int) {
 	s := typeFunc.Type().(*types.Signature)
 	r := p.funcResultsResolverFor(s)
-	
+
 	return r.Results(visits{}).Flatten(), r.Len()
 }
 

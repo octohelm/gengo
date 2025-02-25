@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"go/token"
 	"iter"
+	"maps"
 	"path/filepath"
+	"slices"
 
 	"golang.org/x/tools/go/packages"
 )
@@ -99,8 +101,8 @@ type Universe struct {
 
 func (v *Universe) LocalPkgPaths() iter.Seq2[string, bool] {
 	return func(yield func(string, bool) bool) {
-		for pkgPath, direct := range v.localPkgPaths {
-			if !yield(pkgPath, direct) {
+		for _, pkgPath := range slices.Sorted(maps.Keys(v.localPkgPaths)) {
+			if !yield(pkgPath, v.localPkgPaths[pkgPath]) {
 				return
 			}
 		}
