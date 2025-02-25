@@ -9,7 +9,6 @@ import (
 	"sync"
 
 	"github.com/octohelm/x/ptr"
-
 	"golang.org/x/tools/go/packages"
 )
 

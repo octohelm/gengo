@@ -12,7 +12,7 @@ func TestLoad(t *testing.T) {
 		"github.com/octohelm/gengo/testdata/a",
 	})
 
-	testingx.Expect(t, err, testingx.Be[error](nil))
+	testingx.Expect(t, err, testingx.BeNil[error]())
 
 	p := u.Package("github.com/octohelm/gengo/testdata/a")
 

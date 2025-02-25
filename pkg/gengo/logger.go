@@ -38,8 +38,12 @@ func (h *handler) Handle(ctx context.Context, r slog.Record) error {
 	gengo := ""
 	cost := ""
 	tpe := ""
+	cached := false
 
 	for attr := range r.Attrs {
+		if attr.Key == "cached" {
+			cached = attr.Value.Bool()
+		}
 		if attr.Key == "type" {
 			tpe = attr.Value.String()
 		}
@@ -78,7 +82,9 @@ func (h *handler) Handle(ctx context.Context, r slog.Record) error {
 		line.WriteString(scope)
 	}
 
-	if cost != "" {
+	if cached {
+		line.WriteString(" (cached)")
+	} else if cost != "" {
 		line.WriteString(" (")
 		line.WriteString(cost)
 		line.WriteString(")")

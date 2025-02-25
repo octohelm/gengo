@@ -19,6 +19,8 @@ type GeneratorArgs struct {
 	OutputFileBaseName string
 	// All enabled, will process all deps
 	All bool
+	// Force enabled, will force generate without cache
+	Force bool
 }
 
 type Generator interface {

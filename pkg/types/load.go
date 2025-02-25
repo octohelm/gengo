@@ -2,12 +2,14 @@ package types
 
 import (
 	"fmt"
+	"github.com/octohelm/gengo/pkg/sumfile"
 	"go/token"
 	"iter"
 	"maps"
 	"path/filepath"
 	"slices"
 
+	"golang.org/x/mod/sumdb/dirhash"
 	"golang.org/x/tools/go/packages"
 )
 
@@ -35,6 +37,9 @@ func Load(patterns []string) (*Universe, error) {
 	u := &Universe{
 		fset: fset,
 		pkgs: map[string]Package{},
+		sumFile: &sumfile.File{
+			Data: map[string]string{},
+		},
 	}
 
 	directPkgPaths := map[string]bool{}
@@ -66,6 +71,17 @@ func Load(patterns []string) (*Universe, error) {
 			// when is sub pkg of root pkg
 			if p.Module != nil && rootPkgPath == p.Module.Path {
 				localPkgPaths[p.PkgPath] = directPkgPaths[p.PkgPath]
+
+				if pkgDir := p.Dir; pkgDir != "" {
+					x, _ := dirhash.HashDir(pkgDir, "", dirhash.Hash1)
+					u.sumFile.Data[p.PkgPath] = x
+
+					if mod := pkg.Module(); mod != nil {
+						if u.sumFile.Dir == "" {
+							u.sumFile.Dir = mod.Dir
+						}
+					}
+				}
 			}
 		}
 	}
@@ -97,6 +113,11 @@ type Universe struct {
 	fset          *token.FileSet
 	pkgs          map[string]Package
 	localPkgPaths map[string]bool
+	sumFile       *sumfile.File
+}
+
+func (v *Universe) SumFile() *sumfile.File {
+	return v.sumFile
 }
 
 func (v *Universe) LocalPkgPaths() iter.Seq2[string, bool] {

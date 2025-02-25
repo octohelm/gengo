@@ -3,6 +3,7 @@ package gengo
 import (
 	"errors"
 	"fmt"
+	"github.com/octohelm/gengo/pkg/sumfile"
 	"go/token"
 	"go/types"
 	"log/slog"
@@ -59,7 +60,8 @@ type gengoCtx struct {
 	pkg     gengotypes.Package
 	genfile *genfile
 
-	ignore bool
+	ignore  bool
+	sumFile *sumfile.File
 
 	defers []func(ctx Context) error
 
@@ -91,6 +93,18 @@ func (c *gengoCtx) Writer() SnippetWriter {
 }
 
 func (c *gengoCtx) Execute(ctx corecontext.Context, generators ...Generator) error {
+	if c.args.All {
+		for pkgPath, direct := range c.universe.LocalPkgPaths() {
+			if direct {
+				mod := c.universe.Package(pkgPath).Module()
+				if mod != nil {
+					c.sumFile, _ = sumfile.Load(mod.Dir)
+				}
+				break
+			}
+		}
+	}
+
 	for pkgPath, direct := range c.universe.LocalPkgPaths() {
 		if !c.args.All && !direct {
 			continue
@@ -101,10 +115,39 @@ func (c *gengoCtx) Execute(ctx corecontext.Context, generators ...Generator) err
 		}
 	}
 
+	if c.args.All {
+		sumFile := c.universe.SumFile()
+
+		if c.sumFile != nil {
+			sumFile.Dir = c.sumFile.Dir
+		}
+
+		return sumFile.Save()
+	}
+
 	return nil
 }
 
+func (c *gengoCtx) pkgChanged(pkgPath string) bool {
+	if c.args.Force {
+		return true
+	}
+	previous := c.sumFile
+	current := c.universe.SumFile()
+	if previous == nil || current == nil {
+		return true
+	}
+	return previous.Sum(pkgPath) != current.Sum(pkgPath)
+}
+
 func (c *gengoCtx) pkgExecute(pctx corecontext.Context, pkg string, generators ...Generator) (finalErr error) {
+	if !c.pkgChanged(pkg) {
+		_, l := logr.FromContext(pctx).Start(pctx, "debug: generate", slog.String("scope", pkg), slog.Bool("cached", true))
+		defer l.End()
+
+		return
+	}
+
 	ctx, l := logr.FromContext(pctx).Start(pctx, "generate", slog.String("scope", pkg))
 	defer l.End()
 
