@@ -2,12 +2,11 @@ package a
 
 import (
 	"context"
-	"github.com/octohelm/gengo/testdata/a/x"
+	"errors"
 	"strings"
 
-	"errors"
-
 	"github.com/octohelm/gengo/testdata/a/b"
+	"github.com/octohelm/gengo/testdata/a/x"
 )
 
 type InterfaceType interface {
@@ -74,7 +73,7 @@ func FuncSingleNamedReturnByAssign() (a any, s String, err error) {
 	return a, s, newErr()
 }
 
-func FunWithSwitch() (a any, b String) {
+func FuncWithSwitch() (a any, b String) {
 	switch a {
 	case "1":
 		a = "a1"
@@ -175,4 +174,21 @@ func curryCall(r bool) Func {
 
 func FuncCurryCall() any {
 	return curryCall(true)()()
+}
+
+func Tx(ctx context.Context, action func(ctx context.Context) error) error {
+	return action(ctx)
+}
+
+func Wrap[T any](x T) T {
+	return x
+}
+
+func FuncWithFuncArg() any {
+	return Tx(context.Background(), func(ctx context.Context) error {
+		if true {
+			return errors.New("test 2")
+		}
+		return errors.New("test 1")
+	})
 }

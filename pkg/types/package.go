@@ -51,8 +51,8 @@ type Package interface {
 	Functions() map[string]*types.Func
 	// MethodsOf get methods of types.TypeName
 	MethodsOf(n *types.Named, canPtr bool) []*types.Func
-	// ResultsOf get possible TypeAndValue of function
-	ResultsOf(tpe *types.Func) (results Results, resultN int)
+	// ResultsOf get possible Result of function
+	ResultsOf(tpe *types.Func) (results FuncResults, resultN int)
 	// Position get position of pos
 	Position(pos token.Pos) token.Position
 	// ObjectOf get object of ident

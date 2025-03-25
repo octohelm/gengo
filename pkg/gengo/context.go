@@ -3,7 +3,6 @@ package gengo
 import (
 	"errors"
 	"fmt"
-	"github.com/octohelm/gengo/pkg/sumfile"
 	"go/token"
 	"go/types"
 	"log/slog"
@@ -17,6 +16,7 @@ import (
 	corecontext "context"
 	"github.com/go-courier/logr"
 	"github.com/octohelm/gengo/pkg/gengo/snippet"
+	"github.com/octohelm/gengo/pkg/sumfile"
 	gengotypes "github.com/octohelm/gengo/pkg/types"
 	reflectx "github.com/octohelm/x/reflect"
 )
@@ -269,12 +269,6 @@ func (c *gengoCtx) doGenerate(ctx corecontext.Context, g Generator) error {
 	if c.pkg == nil {
 		return nil
 	}
-
-	defer func() {
-		if e := recover(); e != nil {
-			c.l.Error(fmt.Errorf("doGenerate panic: %#v", e))
-		}
-	}()
 
 	pkgTypes := c.pkg.Types()
 

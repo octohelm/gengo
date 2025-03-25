@@ -92,6 +92,11 @@ func (h *handler) Handle(ctx context.Context, r slog.Record) error {
 
 	line.WriteByte('\n')
 
+	if r.Level == slog.LevelError {
+		line.WriteString(r.Message)
+		line.WriteByte('\n')
+	}
+
 	if tpe == "" {
 		_, _ = io.Copy(os.Stdout, line)
 

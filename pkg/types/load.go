@@ -2,12 +2,13 @@ package types
 
 import (
 	"fmt"
-	"github.com/octohelm/gengo/pkg/sumfile"
 	"go/token"
 	"iter"
 	"maps"
 	"path/filepath"
 	"slices"
+
+	"github.com/octohelm/gengo/pkg/sumfile"
 
 	"golang.org/x/mod/sumdb/dirhash"
 	"golang.org/x/tools/go/packages"
@@ -21,12 +22,22 @@ const (
 	LoadAllSyntax = LoadSyntax | packages.NeedDeps | packages.NeedModule
 )
 
-func Load(patterns []string) (*Universe, error) {
+func WithDir(dir string) func(c *packages.Config) {
+	return func(c *packages.Config) {
+		c.Dir = dir
+	}
+}
+
+func Load(patterns []string, options ...func(c *packages.Config)) (*Universe, error) {
 	fset := token.NewFileSet()
 
 	c := &packages.Config{
 		Fset: fset,
 		Mode: LoadAllSyntax,
+	}
+
+	for _, opt := range options {
+		opt(c)
 	}
 
 	pkgs, err := packages.Load(c, patterns...)
