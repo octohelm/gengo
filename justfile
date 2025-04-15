@@ -8,4 +8,7 @@ fmt:
 	go tool gofumpt -l -w .
 
 dep:
-	go get -u ./...
+	go mod tidy
+
+update:
+    go get -u ./...
