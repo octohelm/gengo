@@ -11,7 +11,7 @@ require (
 
 require (
 	github.com/onsi/gomega v1.37.0
-	golang.org/x/mod v0.24.0
+	golang.org/x/mod v0.25.0
 	golang.org/x/text v0.24.0
 	golang.org/x/tools v0.32.0
 	mvdan.cc/gofumpt v0.8.0
