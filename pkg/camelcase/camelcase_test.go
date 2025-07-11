@@ -39,6 +39,7 @@ func TestSplit(t *testing.T) {
 		{"vimRPCPlugin", "vim", "RPC", "Plugin"},
 		{"GL11Version", "GL11", "Version"},
 		{"99Bottles", "99", "Bottles"},
+		{"V1alpha1", "V1alpha1"},
 		{"May5", "May5"},
 		{"BFG9000", "BFG9000"},
 		{"BöseÜberraschung", "Böse", "Überraschung"},

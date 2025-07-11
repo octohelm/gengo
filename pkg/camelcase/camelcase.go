@@ -29,7 +29,7 @@ func Split(src string) (entries []string) {
 
 	entries = make([]string, 0)
 
-	var runes [][]rune
+	runes := make([][]rune, 0, len(src))
 	lastClass := 0
 	class := 0
 
@@ -46,7 +46,7 @@ func Split(src string) (entries []string) {
 			class = RuneOther
 		}
 
-		if class == lastClass || (class == RuneDigit && (lastClass == RuneUpper || lastClass == RuneLower)) {
+		if class == lastClass || (class == RuneDigit && (lastClass == RuneUpper || lastClass == RuneLower)) || (class == RuneLower && lastClass == RuneDigit) {
 			runes[len(runes)-1] = append(runes[len(runes)-1], r)
 			lastClass = class
 			continue
@@ -71,6 +71,7 @@ func Split(src string) (entries []string) {
 			entries = append(entries, string(s))
 		}
 	}
+
 	return
 }
 
