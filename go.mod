@@ -10,7 +10,7 @@ require (
 )
 
 require (
-	github.com/onsi/gomega v1.37.0
+	github.com/onsi/gomega v1.38.0
 	golang.org/x/mod v0.26.0
 	golang.org/x/text v0.27.0
 	golang.org/x/tools v0.34.0
