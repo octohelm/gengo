@@ -116,7 +116,7 @@ var _ @embedFs
 		final = append(final, snippet.Value(line))
 	}
 
-	return
+	return final, embeds
 }
 
 func (g *runtimedocGen) generateType(c gengo.Context, named *types.Named) error {

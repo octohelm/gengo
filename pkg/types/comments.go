@@ -43,7 +43,7 @@ func ExtractCommentTags(lines []string, markers ...byte) (tags map[string][]stri
 		tags[k] = append(tags[k], v)
 	}
 
-	return
+	return tags, otherLines
 }
 
 func splitKV(line string) (string, string) {

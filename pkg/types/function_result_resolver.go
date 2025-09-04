@@ -62,7 +62,7 @@ func (r *funcResultsResolver) Results(vs visits) (finalFuncResults FuncResults) 
 
 	// no results
 	if retN == 0 {
-		return
+		return finalFuncResults
 	}
 
 	if node, ok := r.signatures[r.sig]; ok {
@@ -99,7 +99,7 @@ func (r *funcResultsResolver) Results(vs visits) (finalFuncResults FuncResults) 
 		return funcResultsFromSignature(r.sig)
 	}
 
-	return
+	return finalFuncResults
 }
 
 func funcResultsFromSignature(sig *types.Signature) FuncResults {

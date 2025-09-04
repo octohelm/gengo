@@ -145,7 +145,7 @@ func (c *gengoCtx) pkgExecute(pctx corecontext.Context, pkg string, generators .
 		_, l := logr.FromContext(pctx).Start(pctx, "debug: generate", slog.String("scope", pkg), slog.Bool("cached", true))
 		defer l.End()
 
-		return
+		return finalErr
 	}
 
 	ctx, l := logr.FromContext(pctx).Start(pctx, "generate", slog.String("scope", pkg))

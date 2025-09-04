@@ -72,7 +72,7 @@ func Split(src string) (entries []string) {
 		}
 	}
 
-	return
+	return entries
 }
 
 type RuneType int

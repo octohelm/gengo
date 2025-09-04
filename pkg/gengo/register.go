@@ -7,7 +7,7 @@ func GetRegisteredGenerators(names ...string) (generators []Generator) {
 		for name := range registeredGenerators {
 			generators = append(generators, registeredGenerators[name])
 		}
-		return
+		return generators
 	}
 
 	for _, name := range names {
@@ -16,7 +16,7 @@ func GetRegisteredGenerators(names ...string) (generators []Generator) {
 		}
 	}
 
-	return
+	return generators
 }
 
 func Register(g Generator) {
