@@ -19,7 +19,7 @@ package types
 import (
 	"testing"
 
-	"github.com/onsi/gomega"
+	testingx "github.com/octohelm/x/testing"
 )
 
 func TestExtractCommentTags(t *testing.T) {
@@ -34,13 +34,13 @@ func TestExtractCommentTags(t *testing.T) {
 
 	a, others := ExtractCommentTags(commentLines, '+', '@')
 
-	gomega.NewWithT(t).Expect(a).To(gomega.Equal(map[string][]string{
+	testingx.Expect(t, a, testingx.Equal(map[string][]string{
 		"gengo:test": {"value1", "value2"},
 		"bar":        {""},
 		"baz":        {"qux,zrb=true"},
 	}))
 
-	gomega.NewWithT(t).Expect(others).To(gomega.Equal([]string{
+	testingx.Expect(t, others, testingx.Equal([]string{
 		"Human comment that is ignored.",
 		"\tCode",
 	}))
