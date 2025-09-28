@@ -1,6 +1,7 @@
 package gengo
 
 import (
+	corecontext "context"
 	"errors"
 	"fmt"
 	"go/token"
@@ -13,11 +14,10 @@ import (
 	"strings"
 	"sync"
 
-	corecontext "context"
-	"github.com/go-courier/logr"
 	"github.com/octohelm/gengo/pkg/gengo/snippet"
 	"github.com/octohelm/gengo/pkg/sumfile"
 	gengotypes "github.com/octohelm/gengo/pkg/types"
+	"github.com/octohelm/x/logr"
 	reflectx "github.com/octohelm/x/reflect"
 )
 

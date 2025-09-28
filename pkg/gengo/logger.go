@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-courier/logr"
+	"github.com/octohelm/x/logr"
 )
 
 func newLogger() *logger {
