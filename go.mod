@@ -7,10 +7,10 @@ tool mvdan.cc/gofumpt
 require github.com/octohelm/x v0.0.0-20250928045151-6a49847969fd
 
 require (
-	golang.org/x/mod v0.28.0
+	golang.org/x/mod v0.29.0
 	golang.org/x/text v0.29.0
-	golang.org/x/tools v0.37.0
-	mvdan.cc/gofumpt v0.9.1
+	golang.org/x/tools v0.38.0
+	mvdan.cc/gofumpt v0.9.2
 )
 
 require (
