@@ -14,11 +14,12 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/octohelm/x/logr"
+	reflectx "github.com/octohelm/x/reflect"
+
 	"github.com/octohelm/gengo/pkg/gengo/snippet"
 	"github.com/octohelm/gengo/pkg/sumfile"
 	gengotypes "github.com/octohelm/gengo/pkg/types"
-	"github.com/octohelm/x/logr"
-	reflectx "github.com/octohelm/x/reflect"
 )
 
 type Executor interface {

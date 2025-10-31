@@ -5,8 +5,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/octohelm/gengo/pkg/namer"
 	testingx "github.com/octohelm/x/testing"
+
+	"github.com/octohelm/gengo/pkg/namer"
 )
 
 type Item struct {

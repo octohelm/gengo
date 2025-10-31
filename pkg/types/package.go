@@ -8,8 +8,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/octohelm/x/ptr"
 	"golang.org/x/tools/go/packages"
+
+	"github.com/octohelm/x/ptr"
 )
 
 type Module struct {

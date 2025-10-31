@@ -2,6 +2,7 @@
 .idea/
 
 bin/
+.tmp/
 
 coverage.txt
 gengo.sum

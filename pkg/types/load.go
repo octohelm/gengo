@@ -8,10 +8,10 @@ import (
 	"path/filepath"
 	"slices"
 
-	"github.com/octohelm/gengo/pkg/sumfile"
-
 	"golang.org/x/mod/sumdb/dirhash"
 	"golang.org/x/tools/go/packages"
+
+	"github.com/octohelm/gengo/pkg/sumfile"
 )
 
 const (

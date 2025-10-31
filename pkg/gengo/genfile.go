@@ -5,21 +5,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"go/ast"
-	"go/format"
-	"go/parser"
 	"go/scanner"
-	"go/token"
 	"io"
 	"os"
 	"path"
 	"sort"
 	"strings"
 
+	"golang.org/x/mod/modfile"
+
+	"github.com/octohelm/gengo/pkg/format"
 	"github.com/octohelm/gengo/pkg/gengo/internal"
 	"github.com/octohelm/gengo/pkg/gengo/snippet"
 	"github.com/octohelm/gengo/pkg/namer"
-	gformat "mvdan.cc/gofumpt/format"
 )
 
 func newGenfile(name string) *genfile {
@@ -84,10 +82,25 @@ package %s
 
 	data := src.Bytes()
 
+	opt := format.Options{}
+
+	pkg := c.Package("")
+	m := pkg.Module()
+
+	if m.GoMod != "" {
+		gomodData, err := os.ReadFile(m.GoMod)
+		if err != nil {
+			return err
+		}
+		modFile, _ := modfile.Parse(m.GoMod, gomodData, nil)
+		if modFile != nil {
+			opt.LocalGroupPrefix = modFile.Module.Mod.Path
+		}
+	}
+
 	lines := bytes.Split(data, []byte("\n"))
 
-	fset := token.NewFileSet()
-	file, err := parser.ParseFile(fset, filename, data, parser.ParseComments|parser.SkipObjectResolution|parser.AllErrors)
+	formatted, err := format.Source(data, opt)
 	if err != nil {
 		var sl scanner.ErrorList
 		if errors.As(err, &sl) {
@@ -117,16 +130,6 @@ package %s
 		return err
 	}
 
-	m := c.Package("").Module()
-
-	ast.SortImports(fset, file)
-
-	gformat.File(fset, file, gformat.Options{
-		LangVersion: "go" + m.GoVersion,
-		ModulePath:  m.Path,
-		ExtraRules:  false,
-	})
-
 	f, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o666)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -137,10 +140,13 @@ package %s
 		}
 		return err
 	}
-
 	defer f.Close()
 
-	return format.Node(f, fset, file)
+	if _, err := f.Write(formatted); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func merge(tagsList ...map[string][]string) map[string][]string {

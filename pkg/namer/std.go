@@ -4,6 +4,9 @@ package namer
 import (
 	"bufio"
 	"bytes"
+)
+
+import (
 	_ "embed"
 )
 

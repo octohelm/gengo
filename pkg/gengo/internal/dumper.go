@@ -9,11 +9,12 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/octohelm/gengo/pkg/namer"
-	gengotypes "github.com/octohelm/gengo/pkg/types"
 	contextx "github.com/octohelm/x/context"
 	reflectx "github.com/octohelm/x/reflect"
 	typesutil "github.com/octohelm/x/types"
+
+	"github.com/octohelm/gengo/pkg/namer"
+	gengotypes "github.com/octohelm/gengo/pkg/types"
 )
 
 var DumperContext = contextx.New[*Dumper]()

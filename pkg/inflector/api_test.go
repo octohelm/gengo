@@ -1,6 +1,8 @@
 package inflector
 
-import "testing"
+import (
+	"testing"
+)
 
 type inflectorTest struct {
 	in    string

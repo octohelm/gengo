@@ -4,9 +4,10 @@ import (
 	"reflect"
 	"testing"
 
+	testingx "github.com/octohelm/x/testing"
+
 	"github.com/octohelm/gengo/pkg/gengo"
 	gengotypes "github.com/octohelm/gengo/pkg/types"
-	testingx "github.com/octohelm/x/testing"
 )
 
 type List[T any] struct {

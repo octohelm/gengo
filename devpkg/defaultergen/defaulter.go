@@ -3,9 +3,8 @@ package defaultergen
 import (
 	"go/types"
 
-	"github.com/octohelm/gengo/pkg/gengo/snippet"
-
 	"github.com/octohelm/gengo/pkg/gengo"
+	"github.com/octohelm/gengo/pkg/gengo/snippet"
 )
 
 func init() {

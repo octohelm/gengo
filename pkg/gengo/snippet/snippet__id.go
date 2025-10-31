@@ -8,9 +8,10 @@ import (
 	"reflect"
 	"strings"
 
+	typesx "github.com/octohelm/x/types"
+
 	"github.com/octohelm/gengo/pkg/gengo/internal"
 	gengotypes "github.com/octohelm/gengo/pkg/types"
-	typesx "github.com/octohelm/x/types"
 )
 
 func PkgExpose(pkgPath string, expose string) Snippet {
