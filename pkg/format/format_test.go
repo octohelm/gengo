@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/rogpeppe/go-internal/modfile"
+	"golang.org/x/mod/modfile"
 
 	testingx "github.com/octohelm/x/testing"
 	"github.com/octohelm/x/testing/bdd"

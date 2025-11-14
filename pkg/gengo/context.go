@@ -49,8 +49,28 @@ type Context interface {
 	Package(importPath string) gengotypes.Package
 	Doc(typ types.Object) (Tags, []string)
 
+	OptsOf(typ types.Object, generatorName string) Opts
+
 	Render(snippet snippet.Snippet)
 	RenderT(template string, args ...snippet.TArg)
+}
+
+type Opts map[string][]string
+
+func (opts Opts) Get(name string) (string, bool) {
+	if v, ok := opts[LowerKebabCase(name)]; ok {
+		if len(v) > 0 {
+			return v[0], true
+		}
+	}
+	return "", false
+}
+
+func (opts Opts) GetAll(name string) ([]string, bool) {
+	if v, ok := opts[LowerKebabCase(name)]; ok {
+		return v, true
+	}
+	return nil, false
 }
 
 type gengoCtx struct {
@@ -67,6 +87,24 @@ type gengoCtx struct {
 	defers []func(ctx Context) error
 
 	l logr.Logger
+}
+
+func (c *gengoCtx) OptsOf(typ types.Object, generatorName string) Opts {
+	tags, _ := c.Doc(typ)
+	if tags == nil {
+		return Opts{}
+	}
+	opts := Opts{}
+
+	prefix := "gengo:" + generatorName + ":"
+
+	for tag, values := range tags {
+		if strings.HasPrefix(tag, prefix) {
+			opts[LowerKebabCase(tag[len(prefix):])] = values[:]
+		}
+	}
+
+	return opts
 }
 
 func (c *gengoCtx) IsZero() bool {
