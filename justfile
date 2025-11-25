@@ -13,6 +13,5 @@ dep:
 update:
     go get -u ./...
 
-
 fmt-debug:
     go tool fmt ./pkg/format/internal

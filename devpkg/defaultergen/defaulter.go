@@ -18,6 +18,10 @@ func (*defaulterGen) Name() string {
 }
 
 func (g *defaulterGen) GenerateType(c gengo.Context, t *types.Named) error {
+	if _, isInterface := t.Obj().Type().(*types.Interface); isInterface {
+		return gengo.ErrSkip
+	}
+
 	c.RenderT(`
 func(v *@Type) SetDefault() {
 	// TODO
@@ -26,5 +30,6 @@ func(v *@Type) SetDefault() {
 
 		snippet.IDArg("Type", t.Obj()),
 	)
+
 	return nil
 }
