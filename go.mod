@@ -8,9 +8,9 @@ tool github.com/octohelm/gengo/internal/cmd/fmt
 require github.com/octohelm/x v0.0.0-20260209062350-0af9cf4d4286
 
 require (
-	golang.org/x/mod v0.32.0
+	golang.org/x/mod v0.33.0
 	golang.org/x/text v0.33.0
-	golang.org/x/tools v0.41.0
+	golang.org/x/tools v0.42.0
 	mvdan.cc/gofumpt v0.9.2
 )
 
