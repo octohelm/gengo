@@ -2,6 +2,7 @@ package types
 
 import (
 	"bytes"
+	"slices"
 	"strings"
 )
 
@@ -34,7 +35,7 @@ func ExtractCommentTags(lines []string, markers ...byte) (tags map[string][]stri
 	for _, line := range lines {
 		line = strings.Trim(line, " ")
 
-		if !(len(line) != 0 && oneOf(markers, line[0])) {
+		if !(len(line) != 0 && slices.Contains(markers, line[0])) {
 			otherLines = append(otherLines, line)
 			continue
 		}
@@ -66,13 +67,4 @@ func splitKV(line string) (string, string) {
 	}
 
 	return k.String(), v.String()
-}
-
-func oneOf(markers []byte, b byte) bool {
-	for _, m := range markers {
-		if b == m {
-			return true
-		}
-	}
-	return false
 }

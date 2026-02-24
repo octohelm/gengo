@@ -15,7 +15,7 @@ type List[T any] struct {
 
 func TestRef(t *testing.T) {
 	t.Run("GIVEN List[string]类型", func(t *testing.T) {
-		tpe := reflect.TypeOf(List[string]{})
+		tpe := reflect.TypeFor[List[string]]()
 
 		t.Run("WHEN 生成并解析类型引用", func(t *testing.T) {
 			refStr := Ref(tpe.PkgPath(), tpe.Name()).String()
@@ -46,7 +46,7 @@ func TestRef(t *testing.T) {
 
 func TestTypeRef(t *testing.T) {
 	t.Run("GIVEN List[List[string]]类型", func(t *testing.T) {
-		tpe := reflect.TypeOf(List[List[string]]{})
+		tpe := reflect.TypeFor[List[List[string]]]()
 
 		t.Run("WHEN 生成类型引用", func(t *testing.T) {
 			x := Ref(tpe.PkgPath(), tpe.Name()).String()

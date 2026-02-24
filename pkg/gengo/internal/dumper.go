@@ -47,7 +47,7 @@ func (d *Dumper) TypeLit(tpe typesutil.Type) string {
 	}
 
 	switch tpe.Kind() {
-	case reflect.Ptr:
+	case reflect.Pointer:
 		return "*" + d.TypeLit(tpe.Elem())
 	case reflect.Chan:
 		return "chan " + d.TypeLit(tpe.Elem())
@@ -143,7 +143,7 @@ func (d *Dumper) ValueLit(in any, optFns ...ValueLitOptFn) string {
 		optFns[i](o)
 	}
 
-	if rv.Kind() == reflect.Ptr && rv.IsNil() {
+	if rv.Kind() == reflect.Pointer && rv.IsNil() {
 		return "nil"
 	}
 
@@ -156,7 +156,7 @@ func (d *Dumper) ValueLit(in any, optFns ...ValueLitOptFn) string {
 	}
 
 	switch tpe.Kind() {
-	case reflect.Ptr:
+	case reflect.Pointer:
 		kind := rv.Elem().Kind()
 		if _, ok := basicKinds[kind]; ok {
 			return fmt.Sprintf("func(v %s) *%s { return &v }(%s)", kind, kind, d.ValueLit(rv.Elem(), optFns...))

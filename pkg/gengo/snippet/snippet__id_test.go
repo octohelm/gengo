@@ -7,6 +7,6 @@ import (
 )
 
 func Test_pkgExpose(t *testing.T) {
-	tpe := reflect.TypeOf(Test_pkgExpose)
+	tpe := reflect.TypeFor[func(t *testing.T)]()
 	fmt.Println(tpe)
 }

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"go/scanner"
 	"io"
+	"maps"
 	"os"
 	"path"
 	"sort"
@@ -117,10 +118,7 @@ package %s
 					}
 				}
 
-				col := sl[i].Pos.Column - 1
-				if col < 0 {
-					col = 0
-				}
+				col := max(sl[i].Pos.Column-1, 0)
 				fmt.Printf("\t%s↑\n", strings.Repeat(" ", col))
 				fmt.Println(sl[i].Msg)
 				fmt.Println()
@@ -152,9 +150,7 @@ func merge(tagsList ...map[string][]string) map[string][]string {
 	mergedTags := make(map[string][]string)
 
 	for _, tags := range tagsList {
-		for k, values := range tags {
-			mergedTags[k] = values
-		}
+		maps.Copy(mergedTags, tags)
 	}
 
 	return mergedTags

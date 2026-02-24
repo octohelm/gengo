@@ -16,7 +16,7 @@ type List[T any] struct {
 
 func TestPkgImportPathAndExpose(t *testing.T) {
 	t.Run("GIVEN List[string] 类型", func(t *testing.T) {
-		tpe := reflect.TypeOf(List[string]{})
+		tpe := reflect.TypeFor[List[string]]()
 
 		t.Run("WHEN 生成类型引用", func(t *testing.T) {
 			refStr := gengotypes.Ref(tpe.PkgPath(), tpe.Name()).String()

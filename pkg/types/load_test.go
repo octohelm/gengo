@@ -64,8 +64,7 @@ func TestLoad(t *testing.T) {
 							foundID := false
 							foundSlice := false
 
-							for i := 0; i < s.NumFields(); i++ {
-								f := s.Field(i)
+							for f := range s.Fields() {
 
 								t.Run(f.Name(), func(t *testing.T) {
 									if f.Name() == "ID" {

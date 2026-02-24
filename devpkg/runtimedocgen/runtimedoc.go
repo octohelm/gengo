@@ -83,8 +83,8 @@ func runtimeDoc(v any, prefix string, names ...string) ([]string, bool) {
 }
 
 func hasExposeField(t *types.Struct) bool {
-	for i := 0; i < t.NumFields(); i++ {
-		if t.Field(i).Exported() {
+	for field := range t.Fields() {
+		if field.Exported() {
 			return true
 		}
 	}
@@ -161,8 +161,7 @@ func(v *@Type) RuntimeDoc(names ...string) ([]string, bool) {
 				}
 			})),
 			"cases": snippet.Snippets(func(yield func(snippet.Snippet) bool) {
-				for i := 0; i < x.NumFields(); i++ {
-					f := x.Field(i)
+				for f := range x.Fields() {
 
 					if !ast.IsExported(f.Name()) {
 						continue
@@ -204,8 +203,7 @@ case @fieldName:
 				}
 			}),
 			"embeds": snippet.Snippets(func(yield func(snippet.Snippet) bool) {
-				for i := 0; i < x.NumFields(); i++ {
-					f := x.Field(i)
+				for f := range x.Fields() {
 
 					if f.Embedded() {
 						if s, ok := f.Type().Underlying().(*types.Struct); ok {

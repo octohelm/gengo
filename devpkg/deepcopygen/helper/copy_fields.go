@@ -39,8 +39,7 @@ func (sfc *StructFieldsCopy) Frag(ctx context.Context) iter.Seq[string] {
 	}
 
 	return func(yield func(string) bool) {
-		for i := 0; i < sfc.Struct.NumFields(); i++ {
-			f := sfc.Struct.Field(i)
+		for f := range sfc.Struct.Fields() {
 
 			if sfc.Skip != nil && sfc.Skip(f) {
 				continue
@@ -74,8 +73,7 @@ func (sfc *StructFieldsCopy) createFieldSnippet(f *types.Var) snippet.Snippet {
 			fc.InSamePkg = x.Obj().Pkg().Path() == sfc.Pkg.Path()
 			fc.PtrResultOrParam = true
 
-			for i := 0; i < x.NumMethods(); i++ {
-				m := x.Method(i)
+			for m := range x.Methods() {
 				fn := m.Type().(*types.Signature)
 
 				// FIXME better check

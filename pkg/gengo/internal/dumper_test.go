@@ -32,27 +32,27 @@ func TestDumper_TypeLit(t *testing.T) {
 		t.Run("WHEN 处理类型字面量", func(t *testing.T) {
 			t.Run("基础类型", func(t *testing.T) {
 				Then(t, "指针类型",
-					Expect(d.ReflectTypeLit(reflect.TypeOf(&bytes.Buffer{})),
+					Expect(d.ReflectTypeLit(reflect.TypeFor[*bytes.Buffer]()),
 						Equal("*bytes.Buffer"),
 					),
 				)
 
 				Then(t, "切片类型",
-					Expect(d.ReflectTypeLit(reflect.TypeOf([]string{})),
+					Expect(d.ReflectTypeLit(reflect.TypeFor[[]string]()),
 						Equal("[]string"),
 					),
 				)
 
 				Then(t, "Map 类型",
-					Expect(d.ReflectTypeLit(reflect.TypeOf(map[string]string{})),
+					Expect(d.ReflectTypeLit(reflect.TypeFor[map[string]string]()),
 						Equal("map[string]string"),
 					),
 				)
 
 				Then(t, "带标签的结构体指针",
-					Expect(d.ReflectTypeLit(reflect.TypeOf(&struct {
-						V string `json:"v" validate:"@int[0,10]"`
-					}{})),
+					Expect(d.ReflectTypeLit(reflect.TypeFor[*struct {
+						V string "json:\"v\" validate:\"@int[0,10]\""
+					}]()),
 						Equal(`*struct {V string `+"`json:\"v\" validate:\"@int[0,10]\"`"+`
 }`),
 					),
@@ -61,13 +61,13 @@ func TestDumper_TypeLit(t *testing.T) {
 
 			t.Run("泛型类型", func(t *testing.T) {
 				Then(t, "简单泛型实例",
-					Expect(d.ReflectTypeLit(reflect.TypeOf(&List[Item]{})),
+					Expect(d.ReflectTypeLit(reflect.TypeFor[*List[Item]]()),
 						Equal("*internal.List[internal.Item]"),
 					),
 				)
 
 				Then(t, "嵌套泛型实例",
-					Expect(d.ReflectTypeLit(reflect.TypeOf(&List[List[Item]]{})),
+					Expect(d.ReflectTypeLit(reflect.TypeFor[*List[List[Item]]]()),
 						Equal("*internal.List[internal.List[internal.Item]]"),
 					),
 				)

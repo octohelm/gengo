@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"iter"
+	"maps"
 	"strings"
 	"text/scanner"
 )
@@ -58,9 +59,7 @@ func T(fmt string, args ...TArg) Snippet {
 
 	for _, a := range args {
 		if a != nil {
-			for name, s := range a.Args() {
-				t.args[name] = s
-			}
+			maps.Insert(t.args, a.Args())
 		}
 	}
 

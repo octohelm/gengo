@@ -399,7 +399,7 @@ func commentLinesFrom(commentGroups ...*ast.CommentGroup) (comments []string) {
 			continue
 		}
 
-		for _, line := range strings.Split(strings.TrimSpace(commentGroup.Text()), "\n") {
+		for line := range strings.SplitSeq(strings.TrimSpace(commentGroup.Text()), "\n") {
 			// skip go: prefix
 			if strings.HasPrefix(line, "go:") {
 				continue
