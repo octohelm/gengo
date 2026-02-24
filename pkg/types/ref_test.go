@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/octohelm/x/cmp"
-	"github.com/octohelm/x/testing/bdd"
 	. "github.com/octohelm/x/testing/v2"
 )
 
@@ -19,7 +18,7 @@ func TestRef(t *testing.T) {
 
 		t.Run("WHEN 生成并解析类型引用", func(t *testing.T) {
 			refStr := Ref(tpe.PkgPath(), tpe.Name()).String()
-			ref := bdd.MustDo(func() (TypeName, error) {
+			ref := MustValue(t, func() (TypeName, error) {
 				return ParseRef(refStr)
 			})
 

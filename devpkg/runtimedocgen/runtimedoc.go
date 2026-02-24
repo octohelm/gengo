@@ -162,7 +162,6 @@ func(v *@Type) RuntimeDoc(names ...string) ([]string, bool) {
 			})),
 			"cases": snippet.Snippets(func(yield func(snippet.Snippet) bool) {
 				for f := range x.Fields() {
-
 					if !ast.IsExported(f.Name()) {
 						continue
 					}
@@ -204,7 +203,6 @@ case @fieldName:
 			}),
 			"embeds": snippet.Snippets(func(yield func(snippet.Snippet) bool) {
 				for f := range x.Fields() {
-
 					if f.Embedded() {
 						if s, ok := f.Type().Underlying().(*types.Struct); ok {
 							if !hasExposeField(s) {

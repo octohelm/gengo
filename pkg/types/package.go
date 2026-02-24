@@ -13,53 +13,56 @@ import (
 	"github.com/octohelm/x/ptr"
 )
 
+// Module 对 packages.Module 做了一层包装，便于后续扩展。
 type Module struct {
 	packages.Module
 }
 
+// Package 暴露已加载包及其 AST、go/types 相关辅助能力。
 type Package interface {
-	// Pkg of go package
+	// Pkg 返回底层的 go/types 包对象。
 	Pkg() *types.Package
-	// Imports of go package
+	// Imports 返回按 import path 索引的导入包。
 	Imports() map[string]Package
-	// Module of go package
+	// Module 返回当前包的模块元信息。
 	Module() *packages.Module
-	// SourceDir code source absolute dir
+	// SourceDir 返回源码目录绝对路径。
 	SourceDir() string
-	// FileSet return file set when load
+	// FileSet 返回加载时使用的 FileSet。
 	FileSet() *token.FileSet
-	// Files ast files of package
+	// Files 返回当前包解析出的 AST 文件列表。
 	Files() []*ast.File
-	// Decl ast Decl for pos
+	// Decl 返回拥有 pos 的声明。
 	Decl(pos token.Pos) ast.Decl
-	// Doc comment tags and leading comments for pos
+	// Doc 返回 pos 对应的指令标签和前置文档注释。
 	Doc(pos token.Pos) (map[string][]string, []string)
-	// Comment trailing comments for pos
+	// Comment 返回 pos 对应的尾随注释。
 	Comment(pos token.Pos) []string
-	// Eval eval expr in package
+	// Eval 在当前包作用域中求值 expr。
 	Eval(expr ast.Expr) (types.TypeAndValue, error)
-	// Constant get constant by name
+	// Constant 按名称返回常量。
 	Constant(name string) *types.Const
-	// Constants get all constants of package
+	// Constants 返回按名称索引的全部常量。
 	Constants() map[string]*types.Const
-	// Type get type by name
+	// Type 按名称返回类型。
 	Type(name string) *types.TypeName
-	// Types get all types of package
+	// Types 返回按名称索引的全部类型。
 	Types() map[string]*types.TypeName
-	// Function get function by name
+	// Function 按名称返回顶层函数。
 	Function(name string) *types.Func
-	// Functions get all signatures of package
+	// Functions 返回按名称索引的全部顶层函数。
 	Functions() map[string]*types.Func
-	// MethodsOf get methods of types.TypeName
+	// MethodsOf 返回 n 上声明的方法，并可按需包含指针接收者方法。
 	MethodsOf(n *types.Named, canPtr bool) []*types.Func
-	// ResultsOf get possible Result of function
+	// ResultsOf 推导函数可能产生的返回结果。
 	ResultsOf(tpe *types.Func) (results FuncResults, resultN int)
-	// Position get position of pos
+	// Position 返回 pos 对应的 token 位置信息。
 	Position(pos token.Pos) token.Position
-	// ObjectOf get object of ident
+	// ObjectOf 返回 id 引用到的对象。
 	ObjectOf(id *ast.Ident) types.Object
 }
 
+// ModInfo 保存模块路径和选定的依赖版本信息。
 type ModInfo struct {
 	Module  string
 	Require map[string]string
@@ -284,6 +287,22 @@ func (p *pkgInfo) Module() *packages.Module {
 }
 
 func (p *pkgInfo) Imports() map[string]Package {
+	for pkgPath := range p.Package.Imports {
+		if imp, ok := p.imports[pkgPath]; ok && imp != nil {
+			continue
+		}
+
+		if resolved := p.u.Package(pkgPath); resolved != nil {
+			p.imports[pkgPath] = resolved
+		}
+	}
+
+	for pkgPath, imp := range p.imports {
+		if imp == nil {
+			delete(p.imports, pkgPath)
+		}
+	}
+
 	return p.imports
 }
 

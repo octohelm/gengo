@@ -178,10 +178,12 @@ import (
 	}
 }
 
+// SnippetWriter 负责把 snippet 渲染到生成文件缓冲区。
 type SnippetWriter interface {
 	Render(snippet snippet.Snippet)
 }
 
+// NewSnippetWriter 基于 w 和 ns 创建一个 SnippetWriter。
 func NewSnippetWriter(w io.Writer, ns namer.NameSystems) SnippetWriter {
 	return &snippetWriter{
 		Writer: w,

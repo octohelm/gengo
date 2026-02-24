@@ -7,14 +7,18 @@ import (
 	gengotypes "github.com/octohelm/gengo/pkg/types"
 )
 
+// Namer 负责把类型引用转换成源码文本。
 type Namer interface {
 	Name(gengotypes.TypeName) string
 }
 
+// NameSystems 按名称组织 SnippetWriter 使用的 namer。
 type NameSystems map[string]Namer
 
+// Names 缓存已经渲染过的类型名称。
 type Names map[gengotypes.TypeName]string
 
+// NewRawNamer 返回一个相对于 pkgPath 输出标识符的 namer。
 func NewRawNamer(pkgPath string, tracker ImportTracker) Namer {
 	return &rawNamer{pkgPath: pkgPath, tracker: tracker}
 }

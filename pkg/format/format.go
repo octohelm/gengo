@@ -17,6 +17,10 @@ import (
 	"mvdan.cc/gofumpt/format"
 )
 
+// OptionsFromModFile 从解析后的 go.mod 构造格式化选项。
+//
+// 它会使用模块路径作为本地 import 分组前缀，并从 require 条目里收集
+// `+gengo:import:group` 指令。
 func OptionsFromModFile(file *modfile.File) Options {
 	o := Options{}
 	o.LocalGroupPrefix = file.Module.Mod.Path
@@ -58,15 +62,18 @@ func importGroup(comments []modfile.Comment) (string, bool) {
 	return "", false
 }
 
+// Options 定义 Source 的 import 分组行为。
 type Options struct {
 	LocalGroupPrefix string
 	ImportGroups     map[string]*ImportGroup
 }
 
+// ImportGroup 表示按路径前缀匹配的命名 import 分组。
 type ImportGroup struct {
 	Prefixes []string
 }
 
+// Match 判断 path 是否属于当前 import 分组。
 func (g *ImportGroup) Match(path string) bool {
 	for _, p := range g.Prefixes {
 		if strings.HasPrefix(path, p) {
@@ -76,6 +83,7 @@ func (g *ImportGroup) Match(path string) bool {
 	return false
 }
 
+// Source 按 opt 对 Go 源码做格式化并重排 import。
 func Source(src []byte, opt Options) ([]byte, error) {
 	fset := token.NewFileSet()
 	fset.AddFile("gengo_base.fake.go", 1, 10)

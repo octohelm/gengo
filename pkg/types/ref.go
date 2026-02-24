@@ -7,6 +7,7 @@ import (
 	"strings"
 )
 
+// TypeName 是生成器运行时使用的最小类型引用接口。
 type TypeName interface {
 	Pkg() *types.Package
 	Name() string
@@ -16,10 +17,12 @@ type TypeName interface {
 
 var _ TypeName = &types.TypeName{}
 
+// Ref 根据 pkgPath 和 name 构造一个轻量的 TypeName。
 func Ref(pkgPath string, name string) TypeName {
 	return &ref{pkgPath: pkgPath, name: name}
 }
 
+// ParseRef 解析一个带包限定的类型引用字符串。
 func ParseRef(ref string) (TypeName, error) {
 	base := ref
 	if i := strings.Index(ref, "["); i > 0 {
@@ -31,6 +34,7 @@ func ParseRef(ref string) (TypeName, error) {
 	return nil, fmt.Errorf("unsupported ref: %s", ref)
 }
 
+// MustParseRef 解析 ref；如果无效则 panic。
 func MustParseRef(ref string) TypeName {
 	r, err := ParseRef(ref)
 	if err != nil {
@@ -64,6 +68,7 @@ func (r *ref) Exported() bool {
 	return ast.IsExported(r.name)
 }
 
+// ParseTypeRef 解析一个可带类型参数的类型引用。
 func ParseTypeRef(s string) (*TypeRef, error) {
 	if i := strings.Index(s, "["); i > 0 {
 		if strings.LastIndex(s, "]") == len(s)-1 {
@@ -123,12 +128,14 @@ func ParseTypeRef(s string) (*TypeRef, error) {
 	}, nil
 }
 
+// TypeRef 表示一个解析后的类型引用，可能包含类型参数。
 type TypeRef struct {
 	Name     string
 	PkgPath  string
 	TypeList []*TypeRef
 }
 
+// Walk 会按深度优先顺序遍历 r 及其嵌套类型参数。
 func (r *TypeRef) Walk(walk func(t *TypeRef) bool) {
 	if !walk(r) {
 		return
@@ -139,6 +146,7 @@ func (r *TypeRef) Walk(walk func(t *TypeRef) bool) {
 	}
 }
 
+// String 会把类型引用重新序列化为文本形式。
 func (r *TypeRef) String() string {
 	b := &strings.Builder{}
 

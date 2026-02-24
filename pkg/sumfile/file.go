@@ -10,6 +10,7 @@ import (
 
 const sumFilename = "gengo.sum"
 
+// Load 从 modRoot 读取 `gengo.sum`。
 func Load(modRoot string) (*File, error) {
 	data, err := os.ReadFile(filepath.Join(modRoot, sumFilename))
 	if err != nil {
@@ -31,11 +32,13 @@ func Load(modRoot string) (*File, error) {
 	return sum, nil
 }
 
+// File 表示 `gengo.sum` 文件内容。
 type File struct {
 	Dir  string
 	Data map[string]string
 }
 
+// Save 将摘要文件写回 Dir。
 func (f *File) Save() error {
 	file, err := os.OpenFile(filepath.Join(f.Dir, sumFilename), os.O_RDWR|os.O_CREATE|os.O_TRUNC, os.ModePerm)
 	if err != nil {
@@ -47,6 +50,7 @@ func (f *File) Save() error {
 	return err
 }
 
+// Bytes 按稳定的包路径顺序序列化文件内容。
 func (f *File) Bytes() []byte {
 	b := bytes.NewBuffer(nil)
 	for _, pkgPath := range slices.Sorted(maps.Keys(f.Data)) {
@@ -58,6 +62,7 @@ func (f *File) Bytes() []byte {
 	return b.Bytes()
 }
 
+// Sum 返回 pkgPath 对应的已记录摘要。
 func (f *File) Sum(pkgPath string) string {
 	if f.Data == nil {
 		return ""

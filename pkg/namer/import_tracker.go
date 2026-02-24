@@ -9,6 +9,7 @@ import (
 	gengotypes "github.com/octohelm/gengo/pkg/types"
 )
 
+// ImportTracker 负责为导入包路径分配稳定的本地名称。
 type ImportTracker interface {
 	AddType(o gengotypes.TypeName)
 
@@ -24,6 +25,7 @@ type defaultImportTracker struct {
 	checkStd   bool
 }
 
+// NewDefaultImportTracker 创建一个默认的 ImportTracker，并启用标准库名称冲突检查。
 func NewDefaultImportTracker() ImportTracker {
 	return &defaultImportTracker{
 		pathToName: map[string]string{},

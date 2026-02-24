@@ -9,11 +9,17 @@ import (
 	"golang.org/x/text/language"
 )
 
+// 这些是基于 Split 构建的常用大小写转换函数。
 var (
+	// LowerSnakeCase 将名称转换为 lower snake_case。
 	LowerSnakeCase = makeCase("_", wrap(strings.ToLower))
+	// UpperSnakeCase 将名称转换为 upper SNAKE_CASE。
 	UpperSnakeCase = makeCase("_", wrap(strings.ToUpper))
+	// LowerKebabCase 将名称转换为 lower kebab-case。
 	LowerKebabCase = makeCase("-", wrap(strings.ToLower))
+	// UpperKebabCase 将名称转换为 upper KEBAB-CASE。
 	UpperKebabCase = makeCase("-", wrap(strings.ToUpper))
+	// LowerCamelCase 将名称转换为 lowerCamelCase。
 	LowerCamelCase = makeCase("", func(w string, i int) string {
 		if i == 0 {
 			return strings.ToLower(w)
@@ -23,6 +29,7 @@ var (
 		}
 		return cases.Title(language.Und).String(w)
 	})
+	// UpperCamelCase 将名称转换为 UpperCamelCase。
 	UpperCamelCase = makeCase("", func(w string, i int) string {
 		if bytes.EqualFold([]byte(w), []byte("ID")) {
 			return "ID"

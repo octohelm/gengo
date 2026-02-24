@@ -12,6 +12,7 @@ import (
 	"github.com/octohelm/gengo/pkg/format/internal"
 )
 
+// Project 会遍历一个或多个入口路径，并格式化遇到的 Go 文件。
 type Project struct {
 	Entrypoint []string `arg:""`
 
@@ -21,6 +22,7 @@ type Project struct {
 	cwd string
 }
 
+// Init 记录当前工作目录，供后续输出相对路径时使用。
 func (p *Project) Init(ctx context.Context) error {
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -30,43 +32,78 @@ func (p *Project) Init(ctx context.Context) error {
 	return nil
 }
 
+// Run 会遍历每个入口，格式化符合条件的 Go 文件，并按需回写到磁盘。
 func (p *Project) Run(ctx context.Context) error {
 	for _, entry := range p.Entrypoint {
-		entry = filepath.Clean(entry)
-		if !filepath.IsAbs(entry) {
-			entry = filepath.Join(p.cwd, entry)
-		}
-		if err := filepath.WalkDir(entry, func(path string, d fs.DirEntry, err error) error {
-			explicit := path == entry
-			switch {
-			case err != nil:
-				return err
-			case d.IsDir():
-				if !explicit && shouldIgnore(path) {
-					return filepath.SkipDir
-				}
-				// simply recurse into directories
-				return nil
-			case explicit:
-				// non-directories given as explicit arguments are always formatted
-			case !isGoFilename(d.Name()):
-				return nil // skip walked non-Go files
-			}
-			info, err := d.Info()
-			if err != nil {
-				return err
-			}
-			if fileWeight(path, info) == exclusive {
-				return nil
-			}
+		root, recursive := p.resolveEntrypoint(entry)
 
-			return p.process(path, info)
+		if err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+			return p.walkEntrypoint(root, recursive, path, d, err)
 		}); err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+func (p *Project) resolveEntrypoint(entry string) (string, bool) {
+	recursive := false
+
+	switch {
+	case entry == "...":
+		entry = "."
+		recursive = true
+	case strings.HasSuffix(entry, string(filepath.Separator)+"..."):
+		entry = strings.TrimSuffix(entry, string(filepath.Separator)+"...")
+		recursive = true
+	case strings.HasSuffix(entry, "/..."):
+		entry = strings.TrimSuffix(entry, "/...")
+		recursive = true
+	}
+
+	if entry == "" {
+		entry = "."
+	}
+
+	entry = filepath.Clean(entry)
+	if !filepath.IsAbs(entry) {
+		entry = filepath.Join(p.cwd, entry)
+	}
+
+	return entry, recursive
+}
+
+func (p *Project) walkEntrypoint(entry string, recursive bool, path string, d fs.DirEntry, err error) error {
+	explicit := path == entry
+
+	switch {
+	case err != nil:
+		return err
+	case d.IsDir():
+		if !explicit && shouldIgnore(path) {
+			return filepath.SkipDir
+		}
+		if !recursive && explicit {
+			return nil
+		}
+		// simply recurse into directories
+		return nil
+	case explicit:
+		// non-directories given as explicit arguments are always formatted
+	case !isGoFilename(d.Name()):
+		return nil // skip walked non-Go files
+	}
+
+	info, err := d.Info()
+	if err != nil {
+		return err
+	}
+	if fileWeight(path, info) == exclusive {
+		return nil
+	}
+
+	return p.process(path, info)
 }
 
 func (p *Project) process(path string, info os.FileInfo) error {

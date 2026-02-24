@@ -8,11 +8,9 @@ import (
 	"text/scanner"
 )
 
-// Sprintf
-// same as fmt.Sprintf, but only support:
+// Sprintf 把格式串渲染成一个 Snippet。
 //
-//	%v print as go value
-//	%T print as ident
+// 它只支持 `%v` 表示 Go 值字面量，和 `%T` 表示标识符或类型引用。
 func Sprintf(fmt string, args ...any) Snippet {
 	return &printer{
 		fmt:  fmt,

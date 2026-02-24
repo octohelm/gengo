@@ -10,18 +10,22 @@ import (
 	"text/scanner"
 )
 
+// IDArg 为 name 绑定一个按标识符方式渲染的模板参数。
 func IDArg(name string, id any) TArg {
 	return &arg{name: name, snippet: ID(id)}
 }
 
+// ValueArg 为 name 绑定一个按 Go 值字面量渲染的模板参数。
 func ValueArg(name string, v any) TArg {
 	return &arg{name: name, snippet: Value(v)}
 }
 
+// Arg 为 name 绑定一个 snippet 模板参数。
 func Arg(name string, snippet Snippet) TArg {
 	return &arg{name: name, snippet: snippet}
 }
 
+// Args 表示一组可复用的命名模板参数。
 type Args map[string]Snippet
 
 func (args Args) Args() iter.Seq2[string, Snippet] {
@@ -47,10 +51,12 @@ func (a *arg) Args() iter.Seq2[string, Snippet] {
 	}
 }
 
+// TArg 为 T 提供一个或多个命名参数。
 type TArg interface {
 	Args() iter.Seq2[string, Snippet]
 }
 
+// T 渲染一个带命名参数的模板 snippet。
 func T(fmt string, args ...TArg) Snippet {
 	t := &template{
 		format: fmt,

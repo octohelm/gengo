@@ -15,19 +15,26 @@ import (
 )
 
 const (
-	LoadFiles     = packages.NeedName | packages.NeedFiles | packages.NeedCompiledGoFiles
-	LoadImports   = LoadFiles | packages.NeedImports
-	LoadTypes     = LoadImports | packages.NeedTypes | packages.NeedTypesSizes
-	LoadSyntax    = LoadTypes | packages.NeedSyntax | packages.NeedTypesInfo
+	// LoadFiles 加载包名和文件列表。
+	LoadFiles = packages.NeedName | packages.NeedFiles | packages.NeedCompiledGoFiles
+	// LoadImports 在 LoadFiles 基础上额外加载导入包信息。
+	LoadImports = LoadFiles | packages.NeedImports
+	// LoadTypes 在 LoadImports 基础上额外加载类型信息。
+	LoadTypes = LoadImports | packages.NeedTypes | packages.NeedTypesSizes
+	// LoadSyntax 在 LoadTypes 基础上额外加载语法树和类型细节。
+	LoadSyntax = LoadTypes | packages.NeedSyntax | packages.NeedTypesInfo
+	// LoadAllSyntax 在 LoadSyntax 基础上额外加载依赖和模块元信息。
 	LoadAllSyntax = LoadSyntax | packages.NeedDeps | packages.NeedModule
 )
 
+// WithDir 为 Load 设置 packages.Config.Dir。
 func WithDir(dir string) func(c *packages.Config) {
 	return func(c *packages.Config) {
 		c.Dir = dir
 	}
 }
 
+// Load 使用 go/packages 把 patterns 解析成一个 Universe。
 func Load(patterns []string, options ...func(c *packages.Config)) (*Universe, error) {
 	fset := token.NewFileSet()
 
@@ -120,6 +127,7 @@ func Load(patterns []string, options ...func(c *packages.Config)) (*Universe, er
 	return u, nil
 }
 
+// Universe 保存已加载的包图以及相关元信息。
 type Universe struct {
 	fset          *token.FileSet
 	pkgs          map[string]Package
@@ -127,10 +135,12 @@ type Universe struct {
 	sumFile       *sumfile.File
 }
 
+// SumFile 返回当前 Universe 计算出的包摘要文件。
 func (v *Universe) SumFile() *sumfile.File {
 	return v.sumFile
 }
 
+// LocalPkgPaths 迭代本地包路径，并标记它是否是直接加载目标。
 func (v *Universe) LocalPkgPaths() iter.Seq2[string, bool] {
 	return func(yield func(string, bool) bool) {
 		for _, pkgPath := range slices.Sorted(maps.Keys(v.localPkgPaths)) {
@@ -141,11 +151,13 @@ func (v *Universe) LocalPkgPaths() iter.Seq2[string, bool] {
 	}
 }
 
+// Package 返回 pkgPath 对应的已加载包。
 func (u *Universe) Package(pkgPath string) Package {
 	v, _ := u.pkgs[pkgPath]
 	return v
 }
 
+// LocateInPackage 返回拥有 pos 的包。
 func (u *Universe) LocateInPackage(pos token.Pos) Package {
 	pp := u.fset.Position(pos)
 	dir := filepath.Dir(pp.Filename)

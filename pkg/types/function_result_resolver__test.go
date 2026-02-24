@@ -5,11 +5,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/octohelm/x/testing/bdd"
+	. "github.com/octohelm/x/testing/v2"
 )
 
 func Test_funcResultsResolver(t *testing.T) {
-	t.Run("GIVEN function with return directly", bdd.GivenT(func(b bdd.T) {
+	t.Run("GIVEN function with return directly", func(t *testing.T) {
 		root, u := initModule(t, map[string]string{
 			"a": `
 package a
@@ -25,12 +25,12 @@ func Fn() any {
 
 		results, _ := p.ResultsOf(fn)
 
-		b.Then("get results",
-			bdd.Equal("(2)", results.String()),
+		Then(t, "get results",
+			Expect(results.String(), Equal("(2)")),
 		)
-	}))
+	})
 
-	t.Run("GIVEN function with untyped nil", bdd.GivenT(func(b bdd.T) {
+	t.Run("GIVEN function with untyped nil", func(t *testing.T) {
 		root, u := initModule(t, map[string]string{
 			"a": `
 package a
@@ -46,12 +46,12 @@ func Fn() any {
 
 		results, _ := p.ResultsOf(fn)
 
-		b.Then("get results",
-			bdd.Equal("(untyped nil)", results.String()),
+		Then(t, "get results",
+			Expect(results.String(), Equal("(untyped nil)")),
 		)
-	}))
+	})
 
-	t.Run("GIVEN function with return multiple values directly", bdd.GivenT(func(b bdd.T) {
+	t.Run("GIVEN function with return multiple values directly", func(t *testing.T) {
 		root, u := initModule(t, map[string]string{
 			"a": `
 package a
@@ -69,12 +69,12 @@ func Fn() (any, error) {
 
 		results, _ := p.ResultsOf(fn)
 
-		b.Then("get results",
-			bdd.Equal("(1, *errors.errorString)", results.String()),
+		Then(t, "get results",
+			Expect(results.String(), Equal("(1, *errors.errorString)")),
 		)
-	}))
+	})
 
-	t.Run("GIVEN function with result assigned", bdd.GivenT(func(b bdd.T) {
+	t.Run("GIVEN function with result assigned", func(t *testing.T) {
 		root, u := initModule(t, map[string]string{
 			"a": `
 package a
@@ -100,12 +100,12 @@ func Fn() any {
 
 		results, _ := p.ResultsOf(fn)
 
-		b.Then("get results",
-			bdd.Equal("(2)", results.String()),
+		Then(t, "get results",
+			Expect(results.String(), Equal("(2)")),
 		)
-	}))
+	})
 
-	t.Run("GIVEN function with return of select expr", bdd.GivenT(func(b bdd.T) {
+	t.Run("GIVEN function with return of select expr", func(t *testing.T) {
 		root, u := initModule(t, map[string]string{
 			"a": `
 package a
@@ -123,12 +123,12 @@ func Fn() any {
 
 		results, _ := p.ResultsOf(fn)
 
-		b.Then("get results",
-			bdd.Equal(`(string | "2")`, results.String()),
+		Then(t, "get results",
+			Expect(results.String(), Equal(`(string | "2")`)),
 		)
-	}))
+	})
 
-	t.Run("GIVEN function with conditions", bdd.GivenT(func(b bdd.T) {
+	t.Run("GIVEN function with conditions", func(t *testing.T) {
 		root, u := initModule(t, map[string]string{
 			"a": `
 package a
@@ -160,12 +160,12 @@ func Fn() (a any, b String) {
 
 		results, _ := p.ResultsOf(fn)
 
-		b.Then("get results",
-			bdd.Equal(`("a1" | "a2" | "a3", "b1" | "b2" | "b3")`, results.String()),
+		Then(t, "get results",
+			Expect(results.String(), Equal(`("a1" | "a2" | "a3", "b1" | "b2" | "b3")`)),
 		)
-	}))
+	})
 
-	t.Run("GIVEN function with named return", bdd.GivenT(func(b bdd.T) {
+	t.Run("GIVEN function with named return", func(t *testing.T) {
 		root, u := initModule(t, map[string]string{
 			"a": `
 package a
@@ -182,12 +182,12 @@ func Fn() (ret string) {
 
 		results, _ := p.ResultsOf(fn)
 
-		b.Then("get results",
-			bdd.Equal(`("1")`, results.String()),
+		Then(t, "get results",
+			Expect(results.String(), Equal(`("1")`)),
 		)
-	}))
+	})
 
-	t.Run("GIVEN function with call", bdd.GivenT(func(b bdd.T) {
+	t.Run("GIVEN function with call", func(t *testing.T) {
 		root, u := initModule(t, map[string]string{
 			"a": `
 package a
@@ -208,12 +208,12 @@ func Fn() (any) {
 
 		results, _ := p.ResultsOf(fn)
 
-		b.Then("get results",
-			bdd.Equal(`("1")`, results.String()),
+		Then(t, "get results",
+			Expect(results.String(), Equal(`("1")`)),
 		)
-	}))
+	})
 
-	t.Run("GIVEN function call with inline func which return error", bdd.GivenT(func(b bdd.T) {
+	t.Run("GIVEN function call with inline func which return error", func(t *testing.T) {
 		root, u := initModule(t, map[string]string{
 			"a": `
 package a
@@ -238,12 +238,12 @@ func Fn() error {
 
 		results, _ := p.ResultsOf(fn)
 
-		b.Then("get results",
-			bdd.Equal(`(*errors.errorString)`, results.String()),
+		Then(t, "get results",
+			Expect(results.String(), Equal(`(*errors.errorString)`)),
 		)
-	}))
+	})
 
-	t.Run("GIVEN function WrapError call with first arg error", bdd.GivenT(func(b bdd.T) {
+	t.Run("GIVEN function WrapError call with first arg error", func(t *testing.T) {
 		root, u := initModule(t, map[string]string{
 			"a": `
 package a
@@ -283,12 +283,12 @@ func Fn() (any, error) {
 
 		results, _ := p.ResultsOf(fn)
 
-		b.Then("get results",
-			bdd.Equal(`(untyped nil, *errors.errorString | untyped nil)`, results.String()),
+		Then(t, "get results",
+			Expect(results.String(), Equal(`(untyped nil, *errors.errorString | untyped nil)`)),
 		)
-	}))
+	})
 
-	t.Run("GIVEN function with call and set to named return", bdd.GivenT(func(b bdd.T) {
+	t.Run("GIVEN function with call and set to named return", func(t *testing.T) {
 		root, u := initModule(t, map[string]string{
 			"a": `
 package a
@@ -310,12 +310,12 @@ func Fn() (a any) {
 
 		results, _ := p.ResultsOf(fn)
 
-		b.Then("get results",
-			bdd.Equal(`("1")`, results.String()),
+		Then(t, "get results",
+			Expect(results.String(), Equal(`("1")`)),
 		)
-	}))
+	})
 
-	t.Run("GIVEN function with interface call", bdd.GivenT(func(b bdd.T) {
+	t.Run("GIVEN function with interface call", func(t *testing.T) {
 		root, u := initModule(t, map[string]string{
 			"a": `
 package a
@@ -340,48 +340,50 @@ func Multiple() (any, error) {
 		{
 			fn := p.Function("Single")
 			results, _ := p.ResultsOf(fn)
-			b.Then("get results",
-				bdd.Equal(`(string)`, results.String()),
+			Then(t, "get results",
+				Expect(results.String(), Equal(`(string)`)),
 			)
 		}
 
 		{
 			fn := p.Function("Multiple")
 			results, _ := p.ResultsOf(fn)
-			b.Then("get results",
-				bdd.Equal(`(string, error)`, results.String()),
+			Then(t, "get results",
+				Expect(results.String(), Equal(`(string, error)`)),
 			)
 		}
-	}))
+	})
 }
 
 func initModule(t *testing.T, pkgs map[string]string) (string, *Universe) {
 	pkgPath := "x.io/test"
 	pkgDir := t.TempDir()
 
-	if err := os.WriteFile(filepath.Join(pkgDir, "go.mod"), []byte(`
+	Must(t, func() error {
+		return os.WriteFile(filepath.Join(pkgDir, "go.mod"), []byte(`
 module "x.io/test"
 
 go 1.24
-`), os.ModePerm); err != nil {
-		t.Fatal(err)
-	}
+`), os.ModePerm)
+	})
 
 	entries := make([]string, 0, len(pkgs))
 
 	for pkgName, pkgContent := range pkgs {
 		entries = append(entries, filepath.Join(pkgPath, pkgName))
 
-		if err := os.MkdirAll(filepath.Join(pkgDir, pkgName), os.ModePerm); err != nil {
-			t.Fatal(err)
-		}
+		Must(t, func() error {
+			return os.MkdirAll(filepath.Join(pkgDir, pkgName), os.ModePerm)
+		})
 
-		if err := os.WriteFile(filepath.Join(pkgDir, pkgName, pkgName+".go"), []byte(pkgContent), os.ModePerm); err != nil {
-			t.Fatal(err)
-		}
+		Must(t, func() error {
+			return os.WriteFile(filepath.Join(pkgDir, pkgName, pkgName+".go"), []byte(pkgContent), os.ModePerm)
+		})
 	}
 
-	u := bdd.Must(Load(entries, WithDir(pkgDir)))
+	u := MustValue(t, func() (*Universe, error) {
+		return Load(entries, WithDir(pkgDir))
+	})
 
 	t.Cleanup(func() {
 		_ = os.RemoveAll(pkgDir)

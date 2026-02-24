@@ -7,6 +7,7 @@ import (
 	"github.com/octohelm/gengo/pkg/gengo/internal"
 )
 
+// Value 将 v 渲染为 Go 值字面量。
 func Value(v any) Snippet {
 	return &value{v: v}
 }

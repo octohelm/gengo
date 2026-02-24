@@ -2,8 +2,9 @@ package camelcase
 
 import (
 	"fmt"
-	"reflect"
 	"testing"
+
+	. "github.com/octohelm/x/testing/v2"
 )
 
 func ExampleUpperCamelCase() {
@@ -50,9 +51,9 @@ func TestSplit(t *testing.T) {
 			ret := Split(c[0])
 			expect := c[1:]
 
-			if !reflect.DeepEqual(ret, expect) {
-				t.Fatalf("expect %v, but got %v", expect, ret)
-			}
+			Then(t, "分割结果应匹配预期",
+				Expect(ret, Equal(expect)),
+			)
 		})
 	}
 }

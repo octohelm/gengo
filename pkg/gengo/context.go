@@ -22,10 +22,12 @@ import (
 	gengotypes "github.com/octohelm/gengo/pkg/types"
 )
 
+// Executor 会在 Context 已加载的包上执行生成器。
 type Executor interface {
 	Execute(ctx corecontext.Context, generators ...Generator) error
 }
 
+// NewContext 加载配置的入口并返回一个执行器。
 func NewContext(args *GeneratorArgs) (Executor, error) {
 	u, err := gengotypes.Load(args.Entrypoint)
 	if err != nil {
@@ -39,6 +41,7 @@ func NewContext(args *GeneratorArgs) (Executor, error) {
 	return c, nil
 }
 
+// Context 在生成器执行期间暴露包元信息、指令和渲染辅助能力。
 type Context interface {
 	IsZero() bool
 
@@ -55,8 +58,10 @@ type Context interface {
 	RenderT(template string, args ...snippet.TArg)
 }
 
+// Opts 保存从注释标签解析并归一化后的生成器选项。
 type Opts map[string][]string
 
+// Get 返回 name 对应的第一个归一化选项值。
 func (opts Opts) Get(name string) (string, bool) {
 	if v, ok := opts[LowerKebabCase(name)]; ok {
 		if len(v) > 0 {
@@ -66,6 +71,7 @@ func (opts Opts) Get(name string) (string, bool) {
 	return "", false
 }
 
+// GetAll 返回 name 对应的全部归一化选项值。
 func (opts Opts) GetAll(name string) ([]string, bool) {
 	if v, ok := opts[LowerKebabCase(name)]; ok {
 		return v, true
@@ -390,6 +396,7 @@ func (c *gengoCtx) New(generator Generator) Generator {
 	return reflect.New(reflectx.Indirect(reflect.ValueOf(generator)).Type()).Interface().(Generator)
 }
 
+// IsGeneratorEnabled 判断 tags 是否启用了 g。
 func IsGeneratorEnabled(g Generator, tags map[string][]string) bool {
 	prefix := "gengo:" + g.Name()
 
@@ -409,4 +416,5 @@ func IsGeneratorEnabled(g Generator, tags map[string][]string) bool {
 	return enabled
 }
 
+// Tags 保存从包注释或声明注释解析出的指令。
 type Tags map[string][]string

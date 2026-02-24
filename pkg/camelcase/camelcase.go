@@ -5,22 +5,16 @@ import (
 	"unicode/utf8"
 )
 
-// Split splits the camelcase word and returns a list of words. It also
-// supports digits. Both lower camel case and upper camel case are supported.
-// For more info please check: http://en.wikipedia.org/wiki/CamelCase
-// Splitting rules
+// Split 会把 CamelCase 风格的字符串拆成单词切片。
 //
-//  1. If string is not valid UTF-8, return it without splitting as
-//     single item array.
-//  2. Assign all unicode characters into one of 4 sets: lower case
-//     letters, upper case letters, numbers, and all other characters.
-//  3. Iterate through characters of string, introducing splits
-//     between adjacent characters that belong to different sets.
-//  4. Iterate through array of split strings, and if a given string
-//     is upper case:
-//     if subsequent string is lower case:
-//     move last character of upper case string to beginning of
-//     lower case string
+// 它同时支持数字，并兼容 lower camel case 和 Upper CamelCase。
+//
+// 拆分规则：
+//
+//  1. 如果字符串不是合法 UTF-8，则直接返回仅包含原字符串的切片。
+//  2. 将所有 Unicode 字符归类为四组：小写字母、大写字母、数字和其他字符。
+//  3. 遍历字符串，并在相邻字符分类变化时引入拆分点。
+//  4. 对连续大写后跟小写的场景做一次调整，把大写串末尾字符移到后一个单词前面。
 func Split(src string) (entries []string) {
 	// don't split invalid utf8
 	if !utf8.ValidString(src) {
@@ -75,11 +69,16 @@ func Split(src string) (entries []string) {
 	return entries
 }
 
+// RuneType 表示标识符拆分过程中 rune 的分类。
 type RuneType int
 
 const (
+	// RuneOther 表示既不是字母也不是数字的 rune。
 	RuneOther = iota
+	// RuneLower 表示小写字母。
 	RuneLower
+	// RuneUpper 表示大写字母。
 	RuneUpper
+	// RuneDigit 表示十进制数字。
 	RuneDigit
 )

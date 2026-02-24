@@ -5,6 +5,7 @@ import (
 	"iter"
 )
 
+// Block 会原样输出源码片段。
 type Block string
 
 func (v Block) IsNil() bool {

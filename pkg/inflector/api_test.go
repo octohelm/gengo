@@ -2,6 +2,8 @@ package inflector
 
 import (
 	"testing"
+
+	. "github.com/octohelm/x/testing/v2"
 )
 
 type inflectorTest struct {
@@ -144,55 +146,51 @@ var singularTests = []inflectorTest{
 }
 
 func TestPluralize(t *testing.T) {
-	for i, test := range pluralTests {
-		s := Pluralize(test.in)
-		if s != test.out {
-			t.Errorf("test %d Pluralize(%s) = %s, expected: %s", i, test.in, s, test.out)
-		}
+	for _, test := range pluralTests {
+		t.Run(test.in, func(t *testing.T) {
+			s := Pluralize(test.in)
+			Then(t, "首次转换应匹配预期", Expect(s, Equal(test.out)))
 
-		// Second retrieval should returns the same result.
-		// This is also tests the cache
-		s = Pluralize(test.in)
-		if s != test.out {
-			t.Errorf("test %d (2) Pluralize(%s) = %s, expected: %s", i, test.in, s, test.out)
-		}
+			// Second retrieval should returns the same result.
+			// This is also tests the cache
+			s = Pluralize(test.in)
+			Then(t, "再次转换应命中缓存并保持一致", Expect(s, Equal(test.out)))
+		})
 	}
 }
 
 func TestSingularize(t *testing.T) {
-	for i, test := range singularTests {
-		s := Singularize(test.in)
-		if s != test.out {
-			t.Errorf("test %d Singularize(%s) = %s, expected: %s", i, test.in, s, test.out)
-		}
+	for _, test := range singularTests {
+		t.Run(test.in, func(t *testing.T) {
+			s := Singularize(test.in)
+			Then(t, "首次转换应匹配预期", Expect(s, Equal(test.out)))
 
-		// Second retrieval should returns the same result.
-		// This is also tests the cache
-		s = Singularize(test.in)
-		if s != test.out {
-			t.Errorf("test %d (2) Singularize(%s) = %s, expected: %s", i, test.in, s, test.out)
-		}
+			// Second retrieval should returns the same result.
+			// This is also tests the cache
+			s = Singularize(test.in)
+			Then(t, "再次转换应命中缓存并保持一致", Expect(s, Equal(test.out)))
+		})
 	}
 }
 
 func TestReverse(t *testing.T) {
-	for i, test := range pluralTests {
+	for _, test := range pluralTests {
 		if !test.match {
 			continue
 		}
-		s := Singularize(Pluralize(test.in))
-		if s != test.in {
-			t.Errorf("test %d Singularize(Pluralize(%s)) != %s, got: %s", i, test.in, test.in, s)
-		}
+		t.Run("plural_"+test.in, func(t *testing.T) {
+			s := Singularize(Pluralize(test.in))
+			Then(t, "复合转换应可逆", Expect(s, Equal(test.in)))
+		})
 	}
 
-	for i, test := range singularTests {
+	for _, test := range singularTests {
 		if !test.match {
 			continue
 		}
-		s := Pluralize(Singularize(test.in))
-		if s != test.in {
-			t.Errorf("test %d Pluralize(Singularize(%s)) != %s, got: %s", i, test.in, test.in, s)
-		}
+		t.Run("singular_"+test.in, func(t *testing.T) {
+			s := Pluralize(Singularize(test.in))
+			Then(t, "复合转换应可逆", Expect(s, Equal(test.in)))
+		})
 	}
 }

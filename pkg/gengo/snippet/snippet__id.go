@@ -14,16 +14,19 @@ import (
 	gengotypes "github.com/octohelm/gengo/pkg/types"
 )
 
+// PkgExpose 按 pkgPath 所在上下文把 expose 渲染成标识符。
 func PkgExpose(pkgPath string, expose string) Snippet {
 	return &pkgExposer{
 		typeName: gengotypes.Ref(pkgPath, expose),
 	}
 }
 
+// PkgExposeOf 渲染 x 对应的包限定标识符。
 func PkgExposeOf(x any) Snippet {
 	return pkgExpose(reflect.TypeOf(x))
 }
 
+// PkgExposeFor 渲染 T 对应的包限定标识符，或使用 exposes 指定的覆盖名称。
 func PkgExposeFor[T any](exposes ...string) Snippet {
 	if len(exposes) > 0 {
 		return &pkgExposer{
@@ -65,6 +68,7 @@ func (i *pkgExposer) Frag(ctx context.Context) iter.Seq[string] {
 	}
 }
 
+// ID 将 v 渲染为 Go 标识符或类型引用。
 func ID(v any) Snippet {
 	return &ident{v: v}
 }

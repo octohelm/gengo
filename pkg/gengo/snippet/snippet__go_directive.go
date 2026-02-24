@@ -5,6 +5,7 @@ import (
 	"iter"
 )
 
+// GoDirective 渲染一行 `//go:` 指令。
 func GoDirective(directive string, args ...string) Snippet {
 	return Func(func(ctx context.Context) iter.Seq[string] {
 		return func(yield func(code string) bool) {

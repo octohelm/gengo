@@ -2,7 +2,10 @@ package types
 
 import (
 	"go/types"
+	"os"
 	"testing"
+
+	gopackages "golang.org/x/tools/go/packages"
 
 	"github.com/octohelm/x/cmp"
 	. "github.com/octohelm/x/testing/v2"
@@ -10,13 +13,15 @@ import (
 
 func TestLoad(t *testing.T) {
 	t.Run("GIVEN 包路径列表", func(t *testing.T) {
-		packages := []string{
+		patterns := []string{
 			"github.com/octohelm/gengo/testdata/a",
 		}
 
 		t.Run("WHEN 加载包", func(t *testing.T) {
 			u := MustValue(t, func() (*Universe, error) {
-				return Load(packages)
+				return Load(patterns, func(c *gopackages.Config) {
+					c.Env = append(os.Environ(), "GOFLAGS=-mod=mod")
+				})
 			})
 
 			t.Run("THEN 获取指定包", func(t *testing.T) {
@@ -65,7 +70,6 @@ func TestLoad(t *testing.T) {
 							foundSlice := false
 
 							for f := range s.Fields() {
-
 								t.Run(f.Name(), func(t *testing.T) {
 									if f.Name() == "ID" {
 										foundID = true
