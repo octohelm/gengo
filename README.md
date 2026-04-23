@@ -1,69 +1,23 @@
 # gengo
 
-[![GoDoc Widget](https://godoc.org/github.com/octohelm/gengo?status.svg)](https://pkg.go.dev/github.com/octohelm/gengo)
+Go 代码生成与相关源码处理能力库。
 
-一个基于 Go 注释指令的模板代码生成框架，用 `+gengo:{name}[:args]` 风格标签驱动生成器发现、类型遍历和代码输出。
+## 职责与边界
 
-仓库提供核心运行时、内置生成器和配套测试样例，既可直接复用，也可作为自定义生成器实现参考。
+- `pkg/gengo` 提供生成器注册、执行与生成文件组装相关能力。
+- `pkg/*` 提供命名、格式化、类型加载、词形处理与 sumfile 等通用支撑。
+- `devpkg/*` 放置开发期生成器或实验性扩展，不作为仓库根执行入口。
+- `tool/internal/cmd/fmt` 提供仓库内部使用的 Go 工具入口。
 
-## 内容总览
+## 目录索引
 
-- [`pkg/gengo`](pkg/gengo)：核心生成框架，包括 generator 注册、上下文、错误约定和执行流程。
-- [`devpkg`](devpkg)：仓库内置的生成器实现，通常通过 side import 方式触发 `init` 注册。
-- [`pkg/types`](pkg/types)：注释标签解析等基础能力，包含 `+gengo:` 指令抽取的测试用例。
-- [`pkg/format`](pkg/format)：生成结果格式化与 import 排序相关能力。
-- [`internal/cmd/fmt`](internal/cmd/fmt)：仓库自用的格式化命令入口。
-- [`testdata`](testdata)：用于验证注释指令和生成行为的样例输入。
+- [pkg](./pkg) 核心库与通用能力
+- [devpkg](./devpkg) 开发期生成器与扩展
+- [tool](./tool) 工具链相关实现
+- [justfile](./justfile) 仓库统一执行入口
 
-## 内置生成器 side import
+## 最小入口
 
-```go
-import (
-	_ "github.com/octohelm/gengo/devpkg/deepcopygen"
-	_ "github.com/octohelm/gengo/devpkg/defaultergen"
-	_ "github.com/octohelm/gengo/devpkg/partialstruct"
-	_ "github.com/octohelm/gengo/devpkg/runtimedocgen"
-)
-```
-
-`devpkg/*` 下每个包都提供了 `doc.go`，用于说明 side import 的使用方式和包职责。
-
-## 自定义生成器示例
-
-```go
-package customgen
-
-import (
-	"go/ast"
-	"go/types"
-
-	"github.com/octohelm/gengo/pkg/gengo"
-)
-
-func init() {
-	gengo.Register(&customGen{})
-}
-
-type customGen struct{}
-
-func (*customGen) Name() string {
-	return "custom"
-}
-
-func (g *customGen) GenerateType(c gengo.Context, named *types.Named) error {
-	if !ast.IsExported(named.Obj().Name()) {
-		return gengo.ErrSkip
-	}
-
-	if whenSomeThing() {
-		return gengo.ErrIgnore
-	}
-
-	return nil
-}
-```
-
-## 相关文档
-
-- [`AGENTS.md`](AGENTS.md)：仓库级协同约束、停止条件与变更边界。
-- [`go.mod`](go.mod)：模块依赖与当前仓库使用的 Go 版本。
+- 查看可用入口：`just`
+- 运行全仓测试：`just go test ./...`
+- 运行静态检查：`just go vet ./...`

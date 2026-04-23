@@ -50,7 +50,7 @@ func (*newerGenerator) New(c Context) Generator {
 
 func mustCtxOnPackage(t *testing.T, entrypoint string) *gengoCtx {
 	executor := MustValue(t, func() (Executor, error) {
-		return NewContext(&GeneratorArgs{
+		return NewExecutor(&GeneratorArgs{
 			Entrypoint:         []string{entrypoint},
 			OutputFileBaseName: "zz_generated_api_test",
 			Force:              true,
@@ -70,7 +70,7 @@ func mustCtxOnPackage(t *testing.T, entrypoint string) *gengoCtx {
 }
 
 func TestGengoCtxHelpers(t *testing.T) {
-	c := mustCtxOnPackage(t, "github.com/octohelm/gengo/testdata/a/c")
+	c := mustCtxOnPackage(t, "github.com/octohelm/gengo/pkg/gengo/testdata/runtime/c")
 
 	t.Run("Package 与 LocateInPackage", func(t *testing.T) {
 		Then(t, "空 importPath 应返回当前包",
@@ -78,7 +78,7 @@ func TestGengoCtxHelpers(t *testing.T) {
 		)
 
 		Then(t, "指定 importPath 应返回对应包",
-			Expect(c.Package("github.com/octohelm/gengo/testdata/a/c"), Equal(c.pkg)),
+			Expect(c.Package("github.com/octohelm/gengo/pkg/gengo/testdata/runtime/c"), Equal(c.pkg)),
 		)
 
 		kubeType := c.pkg.Type("KubePkg")
@@ -144,7 +144,7 @@ func TestGengoCtxHelpers(t *testing.T) {
 
 func TestGenerateBranches(t *testing.T) {
 	t.Run("doGenerateNamedType", func(t *testing.T) {
-		c := mustCtxOnPackage(t, "github.com/octohelm/gengo/testdata/a/c")
+		c := mustCtxOnPackage(t, "github.com/octohelm/gengo/pkg/gengo/testdata/runtime/c")
 		named := c.pkg.Type("KubePkg").Type().(*types.Named)
 
 		Must(t, func() error {
@@ -170,7 +170,7 @@ func TestGenerateBranches(t *testing.T) {
 	})
 
 	t.Run("doGenerateAliasType", func(t *testing.T) {
-		c := mustCtxOnPackage(t, "github.com/octohelm/gengo/testdata/a")
+		c := mustCtxOnPackage(t, "github.com/octohelm/gengo/pkg/gengo/testdata/runtime/c")
 		alias := c.pkg.Type("TimeAlias").Type().(*types.Alias)
 
 		Must(t, func() error {

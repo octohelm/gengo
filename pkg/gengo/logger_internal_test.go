@@ -25,7 +25,7 @@ func TestHandlerAPI(t *testing.T) {
 	t.Run("Handle", func(t *testing.T) {
 		rType := slog.NewRecord(time.Now(), slog.LevelInfo, "done", 0)
 		rType.AddAttrs(
-			slog.String("scope", "github.com/octohelm/gengo/testdata/a/c"),
+			slog.String("scope", "github.com/octohelm/gengo/pkg/gengo/testdata/runtime/c"),
 			slog.String("type", "Obj"),
 			slog.String("gengo", "deepcopy"),
 			slog.Bool("cached", true),
@@ -35,12 +35,12 @@ func TestHandlerAPI(t *testing.T) {
 		})
 
 		Then(t, "带 type 的记录应先缓存到对应 scope",
-			Expect(len(h.pkgs["github.com/octohelm/gengo/testdata/a/c"]), Equal(1)),
+			Expect(len(h.pkgs["github.com/octohelm/gengo/pkg/gengo/testdata/runtime/c"]), Equal(1)),
 		)
 
 		rPkg := slog.NewRecord(time.Now(), slog.LevelError, "failed", 0)
 		rPkg.AddAttrs(
-			slog.String("scope", "github.com/octohelm/gengo/testdata/a/c"),
+			slog.String("scope", "github.com/octohelm/gengo/pkg/gengo/testdata/runtime/c"),
 			slog.Duration("cost", 10*time.Millisecond),
 		)
 		Must(t, func() error {

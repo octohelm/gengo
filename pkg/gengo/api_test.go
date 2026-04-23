@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"go/types"
+	"regexp"
 	"slices"
 	"testing"
 
@@ -126,8 +127,12 @@ func TestRegistryAPI(t *testing.T) {
 		first := &testGenerator{name: "first"}
 		second := &testGenerator{name: "second"}
 
-		Register(first)
-		Register(second)
+		Must(t, func() error {
+			return Register(first)
+		})
+		Must(t, func() error {
+			return Register(second)
+		})
 
 		Then(t, "应返回全部已注册生成器",
 			Expect(len(GetRegisteredGenerators()), Equal(2)),
@@ -139,14 +144,36 @@ func TestRegistryAPI(t *testing.T) {
 			Expect(len(selected), Equal(1)),
 			Expect(selected[0].Name(), Equal("second")),
 		)
+
+		Then(t, "重复注册应返回错误",
+			ExpectDo(func() error {
+				return Register(&testGenerator{name: "first"})
+			}, ErrorMatch(regexp.MustCompile("already registered"))),
+		)
+
+		Then(t, "MustRegister 重复注册应 panic",
+			ExpectMust(func() error {
+				panicked := false
+				defer func() {
+					if recover() != nil {
+						panicked = true
+					}
+				}()
+				MustRegister(&testGenerator{name: "first"})
+				if !panicked {
+					return errors.New("expected panic")
+				}
+				return nil
+			}),
+		)
 	})
 }
 
 func TestContextAndExecute(t *testing.T) {
-	t.Run("NewContext", func(t *testing.T) {
+	t.Run("NewExecutor", func(t *testing.T) {
 		t.Run("非法入口应返回错误", func(t *testing.T) {
 			ExpectMust(func() error {
-				_, err := NewContext(&GeneratorArgs{
+				_, err := NewExecutor(&GeneratorArgs{
 					Entrypoint: []string{"/definitely/not/exist"},
 				})
 				if err == nil {
@@ -158,8 +185,8 @@ func TestContextAndExecute(t *testing.T) {
 
 		t.Run("合法入口应创建执行器并可执行生成器", func(t *testing.T) {
 			executor := MustValue(t, func() (Executor, error) {
-				return NewContext(&GeneratorArgs{
-					Entrypoint:         []string{"github.com/octohelm/gengo/testdata/a/b"},
+				return NewExecutor(&GeneratorArgs{
+					Entrypoint:         []string{"github.com/octohelm/gengo/pkg/gengo/testdata/runtime/b"},
 					OutputFileBaseName: "zz_generated_api_test",
 					Force:              true,
 				})
@@ -185,5 +212,19 @@ func TestContextAndExecute(t *testing.T) {
 				}, Be(cmp.True())),
 			)
 		})
+	})
+
+	t.Run("NewContext 兼容入口", func(t *testing.T) {
+		executor := MustValue(t, func() (Executor, error) {
+			return NewContext(&GeneratorArgs{
+				Entrypoint:         []string{"github.com/octohelm/gengo/pkg/gengo/testdata/runtime/b"},
+				OutputFileBaseName: "zz_generated_api_test",
+				Force:              true,
+			})
+		})
+
+		Then(t, "应继续返回执行器",
+			Expect(executor, Be(cmp.NotNil[Executor]())),
+		)
 	})
 }

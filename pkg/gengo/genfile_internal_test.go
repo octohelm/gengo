@@ -42,7 +42,7 @@ func TestGenfileAPI(t *testing.T) {
 	})
 
 	t.Run("WriteToFile", func(t *testing.T) {
-		c := mustCtxOnPackage(t, "github.com/octohelm/gengo/testdata/a/c")
+		c := mustCtxOnPackage(t, "github.com/octohelm/gengo/pkg/gengo/testdata/runtime/c")
 		gf := newGenfile("write_to_file")
 		Must(t, func() error {
 			return gf.InitWith(c)
@@ -99,7 +99,7 @@ func TestGenfileAPI(t *testing.T) {
 }
 
 func TestPkgExecuteCachedAndCleanup(t *testing.T) {
-	c := mustCtxOnPackage(t, "github.com/octohelm/gengo/testdata/a/c")
+	c := mustCtxOnPackage(t, "github.com/octohelm/gengo/pkg/gengo/testdata/runtime/c")
 	pkgPath := c.pkg.Pkg().Path()
 
 	t.Run("pkgChanged false 时应命中 cached 分支", func(t *testing.T) {
@@ -121,8 +121,8 @@ func TestPkgExecuteCachedAndCleanup(t *testing.T) {
 		})
 
 		executor := MustValue(t, func() (Executor, error) {
-			return NewContext(&GeneratorArgs{
-				Entrypoint:         []string{"github.com/octohelm/gengo/testdata/a/c"},
+			return NewExecutor(&GeneratorArgs{
+				Entrypoint:         []string{"github.com/octohelm/gengo/pkg/gengo/testdata/runtime/c"},
 				OutputFileBaseName: "zz_generated_api_test_cleanup",
 				Force:              true,
 			})

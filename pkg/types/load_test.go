@@ -14,7 +14,7 @@ import (
 func TestLoad(t *testing.T) {
 	t.Run("GIVEN 包路径列表", func(t *testing.T) {
 		patterns := []string{
-			"github.com/octohelm/gengo/testdata/a",
+			"github.com/octohelm/gengo/pkg/types/testdata/a",
 		}
 
 		t.Run("WHEN 加载包", func(t *testing.T) {
@@ -25,7 +25,7 @@ func TestLoad(t *testing.T) {
 			})
 
 			t.Run("THEN 获取指定包", func(t *testing.T) {
-				p := u.Package("github.com/octohelm/gengo/testdata/a")
+				p := u.Package("github.com/octohelm/gengo/pkg/types/testdata/a")
 
 				Then(t, "包应该存在",
 					Expect(p, Be(cmp.NotNil[Package]())),
@@ -134,17 +134,17 @@ func TestLoad(t *testing.T) {
 						"FuncWithCallChain":                 `(untyped nil | *string, untyped nil | untyped nil)`,
 						"FuncSingleReturn":                  `(2)`,
 						"FuncSelectExprReturn":              `(string | "2")`,
-						"FuncWillCall":                      `(2, github.com/octohelm/gengo/testdata/a.String)`,
-						"FuncReturnWithCallDirectly":        `(2, github.com/octohelm/gengo/testdata/a.String)`,
-						"FuncWithNamedReturn":               `(2, github.com/octohelm/gengo/testdata/a.String)`,
+						"FuncWillCall":                      `(2, github.com/octohelm/gengo/pkg/types/testdata/a.String)`,
+						"FuncReturnWithCallDirectly":        `(2, github.com/octohelm/gengo/pkg/types/testdata/a.String)`,
+						"FuncWithNamedReturn":               `(2, github.com/octohelm/gengo/pkg/types/testdata/a.String)`,
 						"FuncSingleNamedReturnByAssign":     `("1", "2", *errors.errorString)`,
 						"FuncWithSwitch":                    `("a1" | "a2" | "a3", "b1" | "b2" | "b3")`,
 						"FuncWithIf":                        `("a0" | "a1" | string)`,
-						"FuncCallReturnAssign":              `(2, github.com/octohelm/gengo/testdata/a.String)`,
+						"FuncCallReturnAssign":              `(2, github.com/octohelm/gengo/pkg/types/testdata/a.String)`,
 						"FuncCallWithFuncLit":               `(1, "s")`,
 						"FuncWithImportedCall":              `(int)`,
 						"FuncCurryCall":                     `(int)`,
-						"FuncWithGenerics":                  `(*github.com/octohelm/gengo/testdata/a.Node, untyped nil)`,
+						"FuncWithGenerics":                  `(*github.com/octohelm/gengo/pkg/types/testdata/a.Node, untyped nil)`,
 					}
 
 					for funcName, expectedResult := range funcResults {

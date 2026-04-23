@@ -19,16 +19,24 @@ type Project struct {
 	List  bool `flag:",omitzero" alias:"l"`
 	Write bool `flag:",omitzero" alias:"w"`
 
-	cwd string
+	cwd         string
+	projectRoot string
 }
 
-// Init 记录当前工作目录，供后续输出相对路径时使用。
+// Init 记录当前工作目录和项目根目录，供后续限制执行边界和输出相对路径。
 func (p *Project) Init(ctx context.Context) error {
 	cwd, err := os.Getwd()
 	if err != nil {
 		return err
 	}
 	p.cwd = cwd
+
+	if mod := internal.LoadModule(cwd); mod != nil {
+		p.projectRoot = mod.Dir
+	} else {
+		p.projectRoot = cwd
+	}
+
 	return nil
 }
 
@@ -36,6 +44,9 @@ func (p *Project) Init(ctx context.Context) error {
 func (p *Project) Run(ctx context.Context) error {
 	for _, entry := range p.Entrypoint {
 		root, recursive := p.resolveEntrypoint(entry)
+		if !withinRoot(p.projectRoot, root) {
+			return fmt.Errorf("入口 %q 超出项目根目录 %q", root, p.projectRoot)
+		}
 
 		if err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 			return p.walkEntrypoint(root, recursive, path, d, err)
@@ -98,6 +109,18 @@ func (p *Project) walkEntrypoint(entry string, recursive bool, path string, d fs
 	info, err := d.Info()
 	if err != nil {
 		return err
+	}
+	if !withinRoot(p.projectRoot, path) {
+		return fmt.Errorf("路径 %q 超出项目根目录 %q", path, p.projectRoot)
+	}
+	if d.Type()&fs.ModeSymlink != 0 {
+		realPath, err := filepath.EvalSymlinks(path)
+		if err != nil {
+			return err
+		}
+		if !withinRoot(p.projectRoot, realPath) {
+			return fmt.Errorf("路径 %q 的软链接目标超出项目根目录 %q", path, p.projectRoot)
+		}
 	}
 	if fileWeight(path, info) == exclusive {
 		return nil
@@ -210,4 +233,15 @@ func matchIgnore(ignore, relPath string) bool {
 		return relPath == ignore
 	}
 	return strings.HasSuffix(relPath, ignore)
+}
+
+func withinRoot(root string, path string) bool {
+	root = filepath.Clean(root)
+	path = filepath.Clean(path)
+
+	rel, err := filepath.Rel(root, path)
+	if err != nil {
+		return false
+	}
+	return rel == "." || rel == "" || (!strings.HasPrefix(rel, ".."+string(filepath.Separator)) && rel != "..")
 }

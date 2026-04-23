@@ -17,30 +17,37 @@ import (
 	gengotypes "github.com/octohelm/gengo/pkg/types"
 )
 
+// DumperContext 在 snippet 渲染上下文中保存当前 Dumper。
 var DumperContext = contextx.New[*Dumper]()
 
+// NewDumper 创建使用 rawNamer 输出类型名的 Dumper。
 func NewDumper(rawNamer namer.Namer) *Dumper {
 	return &Dumper{
 		namer: rawNamer,
 	}
 }
 
+// Dumper 负责把类型、标识符和值转换成 Go 源码字面量。
 type Dumper struct {
 	namer namer.Namer
 }
 
+// Name 按当前命名上下文输出类型名。
 func (d *Dumper) Name(named gengotypes.TypeName) string {
 	return d.namer.Name(named)
 }
 
+// ReflectTypeLit 把 reflect.Type 输出为 Go 类型字面量。
 func (d *Dumper) ReflectTypeLit(tpe reflect.Type) string {
 	return d.TypeLit(typesutil.FromRType(tpe))
 }
 
+// TypesTypeLit 把 go/types.Type 输出为 Go 类型字面量。
 func (d *Dumper) TypesTypeLit(tpe types.Type) string {
 	return d.TypeLit(typesutil.FromTType(tpe))
 }
 
+// TypeLit 把统一类型抽象输出为 Go 类型字面量。
 func (d *Dumper) TypeLit(tpe typesutil.Type) string {
 	if tpe.PkgPath() != "" {
 		return d.Name(gengotypes.Ref(tpe.PkgPath(), tpe.Name()))
@@ -86,26 +93,31 @@ func (d *Dumper) TypeLit(tpe typesutil.Type) string {
 	}
 }
 
+// ValueLitOpt 控制 ValueLit 输出值字面量时的特殊处理。
 type ValueLitOpt struct {
 	SubValue    bool
 	OnInterface func(v any) string
 	OnNamedType func(v any) (string, bool)
 }
 
+// ValueLitOptFn 修改 ValueLitOpt。
 type ValueLitOptFn func(o *ValueLitOpt)
 
+// OnInterface 设置 interface 值的兜底输出逻辑。
 func OnInterface(onUnknown func(v any) string) ValueLitOptFn {
 	return func(o *ValueLitOpt) {
 		o.OnInterface = onUnknown
 	}
 }
 
+// OnNamedType 设置命名类型值的覆盖输出逻辑。
 func OnNamedType(onNamedType func(v any) (string, bool)) ValueLitOptFn {
 	return func(o *ValueLitOpt) {
 		o.OnNamedType = onNamedType
 	}
 }
 
+// SubValue 标记当前值是否作为外层复合字面量的子值输出。
 func SubValue(sub bool) ValueLitOptFn {
 	return func(o *ValueLitOpt) {
 		o.SubValue = sub
@@ -131,6 +143,7 @@ var basicKinds = map[reflect.Kind]bool{
 	reflect.Complex128: true,
 }
 
+// ValueLit 把 Go 值输出为源码层面的值字面量。
 func (d *Dumper) ValueLit(in any, optFns ...ValueLitOptFn) string {
 	rv, ok := in.(reflect.Value)
 	if !ok {

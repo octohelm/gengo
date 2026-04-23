@@ -27,8 +27,8 @@ type Executor interface {
 	Execute(ctx corecontext.Context, generators ...Generator) error
 }
 
-// NewContext 加载配置的入口并返回一个执行器。
-func NewContext(args *GeneratorArgs) (Executor, error) {
+// NewExecutor 加载配置的入口并返回一个执行器。
+func NewExecutor(args *GeneratorArgs) (Executor, error) {
 	u, err := gengotypes.Load(args.Entrypoint)
 	if err != nil {
 		return nil, err
@@ -39,6 +39,13 @@ func NewContext(args *GeneratorArgs) (Executor, error) {
 		l:        newLogger(),
 	}
 	return c, nil
+}
+
+// NewContext 加载配置的入口并返回一个执行器。
+//
+// Deprecated: use NewExecutor.
+func NewContext(args *GeneratorArgs) (Executor, error) {
+	return NewExecutor(args)
 }
 
 // Context 在生成器执行期间暴露包元信息、指令和渲染辅助能力。

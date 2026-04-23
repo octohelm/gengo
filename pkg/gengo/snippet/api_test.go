@@ -266,10 +266,10 @@ func TestSnippetAPI(t *testing.T) {
 
 		t.Run("别名类型应按别名分支输出", func(t *testing.T) {
 			u := MustValue(t, func() (*gengotypes.Universe, error) {
-				return gengotypes.Load([]string{"github.com/octohelm/gengo/testdata/a"})
+				return gengotypes.Load([]string{"github.com/octohelm/gengo/pkg/gengo/snippet/testdata/alias"})
 			})
 
-			p := u.Package("github.com/octohelm/gengo/testdata/a")
+			p := u.Package("github.com/octohelm/gengo/pkg/gengo/snippet/testdata/alias")
 			timeAlias := p.Type("TimeAlias")
 
 			Then(t, "alias 类型应存在",
@@ -277,7 +277,7 @@ func TestSnippetAPI(t *testing.T) {
 			)
 
 			Then(t, "应输出别名标识符",
-				Expect(renderSnippet(ID(timeAlias.Type())), Equal("a.TimeAlias")),
+				Expect(renderSnippet(ID(timeAlias.Type())), Equal("alias.TimeAlias")),
 			)
 		})
 
