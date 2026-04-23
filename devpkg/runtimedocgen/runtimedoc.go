@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	gengo.Register(&runtimedocGen{})
+	gengo.MustRegister(&runtimedocGen{})
 }
 
 type runtimedocGen struct {

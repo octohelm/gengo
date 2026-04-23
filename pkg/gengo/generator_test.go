@@ -2,6 +2,7 @@ package gengo_test
 
 import (
 	"context"
+	"go/types"
 	"os"
 	"path/filepath"
 	"testing"
@@ -9,18 +10,24 @@ import (
 	. "github.com/octohelm/x/testing/v2"
 
 	"github.com/octohelm/gengo/pkg/gengo"
+	"github.com/octohelm/gengo/pkg/gengo/snippet"
 )
 
-import (
-	_ "github.com/octohelm/gengo/devpkg/deepcopygen"
-	_ "github.com/octohelm/gengo/devpkg/defaultergen"
-	_ "github.com/octohelm/gengo/devpkg/runtimedocgen"
-)
+type pkgGenerator struct{}
+
+func (*pkgGenerator) Name() string {
+	return "defaulter"
+}
+
+func (*pkgGenerator) GenerateType(c gengo.Context, named *types.Named) error {
+	c.RenderT("type @NameGenerated struct{}\n", snippet.IDArg("NameGenerated", named.Obj().Name()+"Generated"))
+	return nil
+}
 
 func TestPkgGenerator(t *testing.T) {
 	outputBaseName := "zz_generated_api_test"
 	t.Cleanup(func() {
-		for _, dir := range []string{"../../testdata/a/b", "../../testdata/a/c"} {
+		for _, dir := range []string{"testdata/runtime/b", "testdata/runtime/c"} {
 			matches, err := filepath.Glob(filepath.Join(dir, outputBaseName+".*.go"))
 			if err != nil {
 				continue
@@ -32,10 +39,10 @@ func TestPkgGenerator(t *testing.T) {
 	})
 
 	c := MustValue(t, func() (gengo.Executor, error) {
-		return gengo.NewContext(&gengo.GeneratorArgs{
+		return gengo.NewExecutor(&gengo.GeneratorArgs{
 			Entrypoint: []string{
-				"../../testdata/a/b",
-				"github.com/octohelm/gengo/testdata/a/c",
+				"github.com/octohelm/gengo/pkg/gengo/testdata/runtime/b",
+				"github.com/octohelm/gengo/pkg/gengo/testdata/runtime/c",
 			},
 			OutputFileBaseName: outputBaseName,
 			All:                true,
@@ -43,6 +50,6 @@ func TestPkgGenerator(t *testing.T) {
 	})
 
 	Must(t, func() error {
-		return c.Execute(context.Background(), gengo.GetRegisteredGenerators()...)
+		return c.Execute(context.Background(), &pkgGenerator{})
 	})
 }

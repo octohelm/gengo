@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	gengo.Register(&deepcopyGen{})
+	gengo.MustRegister(&deepcopyGen{})
 }
 
 func (*deepcopyGen) Name() string {

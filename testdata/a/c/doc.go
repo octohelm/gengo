@@ -1,2 +1,0 @@
-// +gengo:defaulter
-package c

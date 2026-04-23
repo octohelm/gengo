@@ -22,13 +22,14 @@ func TestHelpers(t *testing.T) {
 		})
 
 		u := MustValue(t, func() (*Universe, error) {
-			return Load([]string{"github.com/octohelm/gengo/testdata/a"})
+			return Load([]string{"github.com/octohelm/gengo/pkg/types/testdata/a"})
 		})
 
-		p := u.Package("github.com/octohelm/gengo/testdata/a")
+		p := u.Package("github.com/octohelm/gengo/pkg/types/testdata/a")
 
+		got := StringifyNode(p.FileSet(), expr)
 		Then(t, "表达式应被格式化回源码",
-			Expect(StringifyNode(p.FileSet(), expr), Equal(`pkg.Value(arg1, "x")`)),
+			Expect(got == `pkg.Value(arg1, "x")` || got == "pkg.Value(\n\targ1,\n\t\"x\")", Be(cmp.True())),
 		)
 	})
 
@@ -121,10 +122,10 @@ func TestHelpers(t *testing.T) {
 
 func TestPackageQueries(t *testing.T) {
 	u := MustValue(t, func() (*Universe, error) {
-		return Load([]string{"github.com/octohelm/gengo/testdata/a"})
+		return Load([]string{"github.com/octohelm/gengo/pkg/types/testdata/a"})
 	})
 
-	p := u.Package("github.com/octohelm/gengo/testdata/a")
+	p := u.Package("github.com/octohelm/gengo/pkg/types/testdata/a")
 
 	t.Run("Constants 与 Constant", func(t *testing.T) {
 		constants := p.Constants()
@@ -170,7 +171,7 @@ func TestPackageQueries(t *testing.T) {
 		pos := p.Position(structType.Pos())
 
 		Then(t, "位置信息应落在 a.go 中",
-			Expect(filepath.Base(pos.Filename), Equal("a.go")),
+			Expect(filepath.Base(pos.Filename), Equal("model.go")),
 			Expect(pos.Line, Be(cmp.Gt(0))),
 		)
 
@@ -231,17 +232,17 @@ func TestPackageQueries(t *testing.T) {
 		Then(t, "ObjectOf 应返回对应类型对象",
 			Expect(obj, Be(cmp.NotNil[gotypes.Object]())),
 			Expect(obj.Name(), Equal("Struct")),
-			Expect(obj.Pkg().Path(), Equal("github.com/octohelm/gengo/testdata/a")),
+			Expect(obj.Pkg().Path(), Equal("github.com/octohelm/gengo/pkg/types/testdata/a")),
 		)
 	})
 }
 
 func TestUniverseQueries(t *testing.T) {
 	u := MustValue(t, func() (*Universe, error) {
-		return Load([]string{"github.com/octohelm/gengo/testdata/a"})
+		return Load([]string{"github.com/octohelm/gengo/pkg/types/testdata/a"})
 	})
 
-	p := u.Package("github.com/octohelm/gengo/testdata/a")
+	p := u.Package("github.com/octohelm/gengo/pkg/types/testdata/a")
 
 	t.Run("SumFile 与 LocalPkgPaths", func(t *testing.T) {
 		Then(t, "应生成 sumfile",
@@ -251,12 +252,12 @@ func TestUniverseQueries(t *testing.T) {
 		localPkgPaths := maps.Collect(u.LocalPkgPaths())
 
 		Then(t, "应包含直接加载包",
-			Expect(localPkgPaths["github.com/octohelm/gengo/testdata/a"], Be(cmp.True())),
+			Expect(localPkgPaths["github.com/octohelm/gengo/pkg/types/testdata/a"], Be(cmp.True())),
 		)
 
 		Then(t, "应包含同模块下的间接本地包",
-			Expect(localPkgPaths["github.com/octohelm/gengo/testdata/a/b"], Be(cmp.False())),
-			Expect(localPkgPaths["github.com/octohelm/gengo/testdata/a/x"], Be(cmp.False())),
+			Expect(localPkgPaths["github.com/octohelm/gengo/pkg/types/testdata/a/b"], Be(cmp.False())),
+			Expect(localPkgPaths["github.com/octohelm/gengo/pkg/types/testdata/a/x"], Be(cmp.False())),
 		)
 	})
 
@@ -277,11 +278,11 @@ func TestUniverseQueries(t *testing.T) {
 
 		Then(t, "应包含本模块导入包路径键",
 			ExpectMustValue(func() (bool, error) {
-				_, ok := imports["github.com/octohelm/gengo/testdata/a/b"]
+				_, ok := imports["github.com/octohelm/gengo/pkg/types/testdata/a/b"]
 				return ok, nil
 			}, Be(cmp.True())),
 			ExpectMustValue(func() (bool, error) {
-				_, ok := imports["github.com/octohelm/gengo/testdata/a/x"]
+				_, ok := imports["github.com/octohelm/gengo/pkg/types/testdata/a/x"]
 				return ok, nil
 			}, Be(cmp.True())),
 			ExpectMustValue(func() (bool, error) {

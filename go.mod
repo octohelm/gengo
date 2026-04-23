@@ -5,7 +5,7 @@ go 1.26.2
 tool github.com/octohelm/gengo/tool/internal/cmd/fmt
 
 // +gengo:import:group=0_controlled
-require github.com/octohelm/x v0.0.0-20260421082716-a77c6918d9d0
+require github.com/octohelm/x v0.0.0-20260423102402-017813b113b1
 
 require (
 	golang.org/x/mod v0.35.0

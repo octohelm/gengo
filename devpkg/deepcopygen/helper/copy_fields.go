@@ -8,6 +8,7 @@ import (
 	"github.com/octohelm/gengo/pkg/gengo/snippet"
 )
 
+// FieldContext 描述字段类型已有的 deepcopy 方法形态。
 type FieldContext struct {
 	InSamePkg        bool
 	HasDeepCopy      bool
@@ -15,6 +16,7 @@ type FieldContext struct {
 	PtrResultOrParam bool
 }
 
+// StructFieldsCopy 为结构体字段生成 DeepCopyInto 风格的复制语句。
 type StructFieldsCopy struct {
 	Pkg              *types.Package
 	Struct           *types.Struct
@@ -29,6 +31,7 @@ func (sfc *StructFieldsCopy) IsNil() bool {
 	return false
 }
 
+// Frag 展开结构体每个字段对应的复制语句。
 func (sfc *StructFieldsCopy) Frag(ctx context.Context) iter.Seq[string] {
 	if sfc.DeepCopyName == "" {
 		sfc.DeepCopyName = "DeepCopy"

@@ -8,28 +8,35 @@ import (
 	"sync"
 )
 
+// RuleType 表示词形转换方向。
 type RuleType int
 
 const (
+	// Plural 表示转换为复数形式。
 	Plural RuleType = iota
+	// Singular 表示转换为单数形式。
 	Singular
 )
 
+// RuleItem 表示一个正则替换规则。
 type RuleItem struct {
 	Pattern     string
 	Replacement string
 }
 
+// IrregularItem 表示一个不规则词形映射。
 type IrregularItem struct {
 	Word        string
 	Replacement string
 }
 
+// CompiledRule 保存编译后的正则替换规则。
 type CompiledRule struct {
 	Replacement string
 	Regexp      *regexp.Regexp
 }
 
+// Rule 保存某一类词形转换所需的规则集和缓存。
 type Rule struct {
 	Type      RuleType
 	Rules     []*RuleItem
@@ -45,6 +52,7 @@ type Rule struct {
 	cache sync.Map
 }
 
+// Inflected 返回 s 按当前规则转换后的结果。
 func (r *Rule) Inflected(s string) string {
 	inflected, _ := r.cache.LoadOrStore(s, sync.OnceValue(func() string {
 		return r.inflected(s)
@@ -76,6 +84,7 @@ func (r *Rule) inflected(s string) string {
 	return s
 }
 
+// Init 编译规则中的正则表达式并初始化索引。
 func (r *Rule) Init() error {
 	var reString string
 
