@@ -44,6 +44,7 @@ func NewExecutor(args *GeneratorArgs) (Executor, error) {
 // NewContext 加载配置的入口并返回一个执行器。
 //
 // Deprecated: use NewExecutor.
+//go:fix inline
 func NewContext(args *GeneratorArgs) (Executor, error) {
 	return NewExecutor(args)
 }

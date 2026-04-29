@@ -27,3 +27,8 @@ dep:
 [no-cd]
 update path='./...':
     go get -u {{ path }}
+
+# 安装 agent skills
+[no-cd]
+skills-install:
+    go tool skills-install

@@ -216,11 +216,7 @@ func TestContextAndExecute(t *testing.T) {
 
 	t.Run("NewContext 兼容入口", func(t *testing.T) {
 		executor := MustValue(t, func() (Executor, error) {
-			return NewContext(&GeneratorArgs{
-				Entrypoint:         []string{"github.com/octohelm/gengo/pkg/gengo/testdata/runtime/b"},
-				OutputFileBaseName: "zz_generated_api_test",
-				Force:              true,
-			})
+			return NewExecutor(&GeneratorArgs{Entrypoint: []string{"github.com/octohelm/gengo/pkg/gengo/testdata/runtime/b"}, OutputFileBaseName: "zz_generated_api_test", Force: true})
 		})
 
 		Then(t, "应继续返回执行器",

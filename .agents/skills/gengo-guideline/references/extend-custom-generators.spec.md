@@ -74,6 +74,71 @@
 
 排查“某个生成器为什么被启用/禁用”时，先检查这三层。
 
+## 测试写法
+
+扩展自定义生成器时，默认需要补“生成结果测试”；改动触及运行时语义、注册逻辑或标签判断时，再补“运行时行为测试”。
+
+### 生成结果测试
+
+仓库内的首选模式是直接复用 `pkg/gengo/testingutil` 搭一个临时 module，在测试里内联最小输入源码，再断言生成文件内容。
+
+优先参考：
+
+- `devpkg/partialstructgen/partialstruct_test.go`
+- `devpkg/runtimedocgen/runtimedoc_test.go`
+- `pkg/gengo/testingutil/module.go`
+
+建议步骤：
+
+1. 在生成器包内写测试，便于直接实例化未导出的生成器类型。
+2. 用 `testingutil.NewModule(t, files)` 构造最小输入文件集。
+3. 用 `m.ImportPath("sample")` 作为 `GeneratorArgs.Entrypoint`，并显式传 `OutputFileBaseName: "zz_generated_test"` 与 `Force: true`。
+4. 用 `m.Generate(...)` 执行目标生成器，并断言返回的生成文件 map。
+5. 使用 `testingutil.File(...)`、`testingutil.Contains(...)`、`testingutil.NotContains(...)`、`testingutil.Count(...)` 校验生成结果，而不是只判断“有文件生成”。
+
+最小断言应覆盖：
+
+- 生成文件名是否符合 `<base>.<generator>.go`
+- 关键类型、方法、字段或 helper 是否生成
+- 不该出现的字段、类型或分支是否被排除
+- 导入、嵌入资源或 defer 输出是否按预期落地
+
+### 错误路径测试
+
+对存在输入约束的生成器，至少覆盖一个错误路径。优先使用 `m.GenerateError(...)` 断言稳定、可验证的错误文本。
+
+优先覆盖：
+
+- 非法目标类型
+- 缺少必要标签或选项
+- 选项格式不合法
+- 来源类型、嵌入资源或依赖声明缺失
+
+### 运行时行为测试
+
+当改动影响 `pkg/gengo` 运行时，而不只是某个生成器包时，测试应下沉到运行时包本身。
+
+优先参考：
+
+- `pkg/gengo/api_test.go`
+- `pkg/gengo/context_internal_test.go`
+- `pkg/gengo/genfile_internal_test.go`
+- `pkg/gengo/generator_test.go`
+
+对应关系：
+
+- 改注册表语义：补 `Register` / `GetRegisteredGenerators` 相关测试
+- 改标签启用逻辑：补 `IsGeneratorEnabled` 与标签解析相关测试
+- 改输出文件命名、文件头或写文件路径：补 `genfile` 相关测试
+- 改执行器遍历、别名处理、`ErrSkip` / `ErrIgnore` 语义：补 `context` 或 `generator` 相关测试
+
+### 验证分层
+
+- 只改某个生成器实现：先跑 `go test ./对应生成器包`
+- 改共享测试支撑或运行时包：至少跑 `go test ./pkg/gengo/...`
+- 改标签解析：再补 `go test ./pkg/types/...`
+- 改动波及多个生成器或接线方式：再决定是否跑 `go test ./...`
+
 ## 输出约定
 
 - 生成文件名由 `OutputFileBaseName` 与生成器名组成：`<base>.<generator>.go`
@@ -108,5 +173,6 @@
 - 只改某个生成器：`go test ./对应包/...`
 - 改运行时接口或标签语义：至少覆盖 `./pkg/gengo/...` 与 `./pkg/types/...`
 - 改动影响多个生成器：再考虑 `go test ./...`
+- 若新增测试仍无法覆盖生成结果，应说明缺少的输入场景、未断言的输出行为与原因。
 
 如果本地无法完整验证，要说明未覆盖范围和原因。

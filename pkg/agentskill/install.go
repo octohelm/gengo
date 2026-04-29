@@ -299,7 +299,7 @@ func ensureGitIgnore(path string, names []string) error {
 	lines := make([]string, 0, len(names))
 
 	if data, err := os.ReadFile(path); err == nil {
-		for _, line := range strings.Split(string(data), "\n") {
+		for line := range strings.SplitSeq(string(data), "\n") {
 			trimmed := strings.TrimSpace(line)
 			if trimmed == "" {
 				continue
