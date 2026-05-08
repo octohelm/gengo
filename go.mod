@@ -9,10 +9,8 @@ tool (
 
 // +gengo:import:group=0_controlled
 
-require (
-	// +skill:testing-guideline
-	github.com/octohelm/x v0.0.0-20260508075008-3bb151cb7bd8
-)
+// +skill:testing-guideline
+require github.com/octohelm/x v0.0.0-20260508104609-6b72a870e0d2
 
 require (
 	golang.org/x/mod v0.35.0
