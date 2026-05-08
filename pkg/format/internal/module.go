@@ -6,9 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"golang.org/x/mod/modfile"
-
 	"github.com/octohelm/x/sync/singleflight"
+	"golang.org/x/mod/modfile"
 )
 
 var cachedModuleByDir singleflight.GroupValue[string, *CachedModule]

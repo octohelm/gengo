@@ -69,7 +69,8 @@ func TestProjectRunWithDeepEntrypoint(t *testing.T) {
 					return os.ReadFile(filepath.Join(tmpDir, "root.go"))
 				})
 
-				Then(t, "根目录函数声明应带空格",
+				Then(
+					t, "根目录函数声明应带空格",
 					Expect(strings.Contains(string(data), "func Root() {\n"), Be(cmp.True())),
 				)
 			})
@@ -79,7 +80,8 @@ func TestProjectRunWithDeepEntrypoint(t *testing.T) {
 					return os.ReadFile(filepath.Join(tmpDir, "nested", "child", "child.go"))
 				})
 
-				Then(t, "子目录函数声明应带空格",
+				Then(
+					t, "子目录函数声明应带空格",
 					Expect(strings.Contains(string(data), "func Child() {\n"), Be(cmp.True())),
 				)
 			})
@@ -89,7 +91,8 @@ func TestProjectRunWithDeepEntrypoint(t *testing.T) {
 					return os.ReadFile(filepath.Join(tmpDir, "testdata", "ignored.go"))
 				})
 
-				Then(t, "testdata 下文件不应被格式化",
+				Then(
+					t, "testdata 下文件不应被格式化",
 					Expect(strings.Contains(string(data), "func Ignored(){\n"), Be(cmp.True())),
 				)
 			})
@@ -142,7 +145,8 @@ func TestProjectRejectEntrypointOutsideRoot(t *testing.T) {
 				return p.Init(context.Background())
 			})
 
-			Then(t, "THEN 应拒绝越出项目根目录",
+			Then(
+				t, "THEN 应拒绝越出项目根目录",
 				ExpectDo(func() error {
 					return p.Run(context.Background())
 				}, ErrorMatch(regexp.MustCompile("超出项目根目录"))),
@@ -152,7 +156,8 @@ func TestProjectRejectEntrypointOutsideRoot(t *testing.T) {
 				return os.ReadFile(filepath.Join(outsideDir, "outside.go"))
 			})
 
-			Then(t, "THEN 项目外文件不应被格式化",
+			Then(
+				t, "THEN 项目外文件不应被格式化",
 				Expect(strings.Contains(string(data), "func Outside(){\n"), Be(cmp.True())),
 			)
 		})
@@ -203,7 +208,8 @@ func TestProjectRejectSymlinkOutsideRoot(t *testing.T) {
 				return p.Init(context.Background())
 			})
 
-			Then(t, "THEN 应拒绝软链接写出项目根目录",
+			Then(
+				t, "THEN 应拒绝软链接写出项目根目录",
 				ExpectDo(func() error {
 					return p.Run(context.Background())
 				}, ErrorMatch(regexp.MustCompile("软链接目标超出项目根目录"))),
@@ -213,7 +219,8 @@ func TestProjectRejectSymlinkOutsideRoot(t *testing.T) {
 				return os.ReadFile(outsideFile)
 			})
 
-			Then(t, "THEN 项目外软链接目标不应被格式化",
+			Then(
+				t, "THEN 项目外软链接目标不应被格式化",
 				Expect(strings.Contains(string(data), "func Outside(){\n"), Be(cmp.True())),
 			)
 		})

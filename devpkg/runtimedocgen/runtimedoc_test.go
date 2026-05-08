@@ -72,8 +72,10 @@ type Reader interface {
 		}, &runtimedocGen{})
 	})
 
-	Then(t, "应生成 runtime doc 方法和 helper",
-		Expect(files, Be(testingutil.File("sample/zz_generated_test.runtimedoc.go",
+	Then(
+		t, "应生成 runtime doc 方法和 helper",
+		Expect(files, Be(testingutil.File(
+			"sample/zz_generated_test.runtimedoc.go",
 			testingutil.Contains(
 				"//go:embed doc/article.md",
 				"func (v *Article) RuntimeDoc(names ...string) ([]string, bool)",

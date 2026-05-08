@@ -22,7 +22,8 @@ func TestFile(t *testing.T) {
 				},
 			}
 
-			Then(t, "THEN 应按包路径稳定排序输出",
+			Then(
+				t, "THEN 应按包路径稳定排序输出",
 				Expect(string(f.Bytes()), Equal(""+
 					"a.io/b hash-b\n"+
 					"b.io/a hash-a\n"+
@@ -34,7 +35,8 @@ func TestFile(t *testing.T) {
 			t.Run("THEN nil Data 应返回空字符串", func(t *testing.T) {
 				f := &sumfile.File{}
 
-				Then(t, "缺失记录应为空",
+				Then(
+					t, "缺失记录应为空",
 					Expect(f.Sum("a.io/b"), Equal("")),
 				)
 			})
@@ -46,7 +48,8 @@ func TestFile(t *testing.T) {
 					},
 				}
 
-				Then(t, "已记录摘要应可正确返回",
+				Then(
+					t, "已记录摘要应可正确返回",
 					Expect(f.Sum("a.io/b"), Equal("hash-b")),
 				)
 			})
@@ -73,7 +76,8 @@ func TestFile(t *testing.T) {
 				return os.ReadFile(filepath.Join(tmpDir, "gengo.sum"))
 			})
 
-			Then(t, "THEN 文件内容应按稳定顺序写出",
+			Then(
+				t, "THEN 文件内容应按稳定顺序写出",
 				Expect(string(data), Equal(""+
 					"github.com/example/a hash-a\n"+
 					"github.com/example/z hash-z\n")),
@@ -83,11 +87,13 @@ func TestFile(t *testing.T) {
 				return sumfile.Load(tmpDir)
 			})
 
-			Then(t, "THEN Load 后目录应正确",
+			Then(
+				t, "THEN Load 后目录应正确",
 				Expect(loaded.Dir, Equal(tmpDir)),
 			)
 
-			Then(t, "THEN Load 后数据应完整恢复",
+			Then(
+				t, "THEN Load 后数据应完整恢复",
 				Expect(loaded.Data, Equal(original.Data)),
 			)
 		})
@@ -104,7 +110,8 @@ func TestFile(t *testing.T) {
 				return sumfile.Load(tmpDir)
 			})
 
-			Then(t, "THEN 仅包含至少两列的行会被读取",
+			Then(
+				t, "THEN 仅包含至少两列的行会被读取",
 				Expect(loaded.Data, Equal(map[string]string{
 					"github.com/example/a": "hash-a",
 					"github.com/example/b": "hash-b",
@@ -115,7 +122,8 @@ func TestFile(t *testing.T) {
 		t.Run("WHEN 读取不存在的 gengo.sum", func(t *testing.T) {
 			missingDir := filepath.Join(tmpDir, "missing")
 
-			Then(t, "THEN 应返回 not exist 错误",
+			Then(
+				t, "THEN 应返回 not exist 错误",
 				ExpectMust(func() error {
 					_, err := sumfile.Load(missingDir)
 					if err == nil {

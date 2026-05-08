@@ -22,20 +22,26 @@ func TestRef(t *testing.T) {
 				return ParseRef(refStr)
 			})
 
-			Then(t, "包路径应该正确",
-				Expect(ref.Pkg().Path(),
+			Then(
+				t, "包路径应该正确",
+				Expect(
+					ref.Pkg().Path(),
 					Equal("github.com/octohelm/gengo/pkg/types"),
 				),
 			)
 
-			Then(t, "类型名称应该正确",
-				Expect(ref.Name(),
+			Then(
+				t, "类型名称应该正确",
+				Expect(
+					ref.Name(),
 					Equal("List[string]"),
 				),
 			)
 
-			Then(t, "重新序列化应该一致",
-				Expect(ref.String(),
+			Then(
+				t, "重新序列化应该一致",
+				Expect(
+					ref.String(),
 					Equal(refStr),
 				),
 			)
@@ -50,7 +56,8 @@ func TestTypeRef(t *testing.T) {
 		t.Run("WHEN 生成类型引用", func(t *testing.T) {
 			x := Ref(tpe.PkgPath(), tpe.Name()).String()
 
-			Then(t, "解析类型引用应该成功",
+			Then(
+				t, "解析类型引用应该成功",
 				ExpectMustValue(
 					func() (*TypeRef, error) {
 						return ParseTypeRef(x)
@@ -64,19 +71,24 @@ func TestTypeRef(t *testing.T) {
 					return ParseTypeRef(x)
 				})
 
-				Then(t, "字符串表示应该正确",
-					Expect(ref.String(),
+				Then(
+					t, "字符串表示应该正确",
+					Expect(
+						ref.String(),
 						Equal("github.com/octohelm/gengo/pkg/types.List[github.com/octohelm/gengo/pkg/types.List[string]]"),
 					),
 				)
 
-				Then(t, "包路径应该正确",
-					Expect(ref.PkgPath,
+				Then(
+					t, "包路径应该正确",
+					Expect(
+						ref.PkgPath,
 						Equal("github.com/octohelm/gengo/pkg/types"),
 					),
 				)
 
-				Then(t, "解析后的类型引用可以再次解析",
+				Then(
+					t, "解析后的类型引用可以再次解析",
 					ExpectMustValue(
 						func() (*TypeRef, error) {
 							return ParseTypeRef(ref.String())

@@ -18,7 +18,7 @@
 典型流程是：
 
 1. side import 所需生成器，触发 `init()` 注册。
-2. 调用 `gengo.NewContext(&gengo.GeneratorArgs{...})` 创建执行器。
+2. 调用 `gengo.NewExecutor(&gengo.GeneratorArgs{...})` 创建执行器。
 3. 调用 `c.Execute(ctx, gengo.GetRegisteredGenerators()...)` 执行全部已注册生成器。
 
 ## 参考接线
@@ -57,7 +57,7 @@ func main() {
 		entrypoints = append(entrypoints, cwd)
 	}
 
-	c, err := gengo.NewContext(&gengo.GeneratorArgs{
+	c, err := gengo.NewExecutor(&gengo.GeneratorArgs{
 		Entrypoint:         entrypoints,
 		OutputFileBaseName: "zz_generated",
 	})

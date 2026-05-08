@@ -21,26 +21,34 @@ func TestExtractCommentTags(t *testing.T) {
 		tags, others := ExtractCommentTags(commentLines, '+', '@')
 
 		t.Run("THEN 标签应该正确提取", func(t *testing.T) {
-			Then(t, "gengo:test 标签应该有两个值",
-				Expect(tags["gengo:test"],
+			Then(
+				t, "gengo:test 标签应该有两个值",
+				Expect(
+					tags["gengo:test"],
 					Equal([]string{"value1", "value2"}),
 				),
 			)
 
-			Then(t, "bar 标签应该有空值",
-				Expect(tags["bar"],
+			Then(
+				t, "bar 标签应该有空值",
+				Expect(
+					tags["bar"],
 					Equal([]string{""}),
 				),
 			)
 
-			Then(t, "baz标签应该有复合值",
-				Expect(tags["baz"],
+			Then(
+				t, "baz标签应该有复合值",
+				Expect(
+					tags["baz"],
 					Equal([]string{"qux,zrb=true"}),
 				),
 			)
 
-			Then(t, "所有标签应该匹配预期",
-				Expect(tags,
+			Then(
+				t, "所有标签应该匹配预期",
+				Expect(
+					tags,
 					Equal(map[string][]string{
 						"gengo:test": {"value1", "value2"},
 						"bar":        {""},
@@ -51,8 +59,10 @@ func TestExtractCommentTags(t *testing.T) {
 		})
 
 		t.Run("THEN 非标签行应该正确分离", func(t *testing.T) {
-			Then(t, "others 应该包含非标签行",
-				Expect(others,
+			Then(
+				t, "others 应该包含非标签行",
+				Expect(
+					others,
 					Equal([]string{
 						"Human comment that is ignored.",
 						"\tCode",
@@ -60,8 +70,10 @@ func TestExtractCommentTags(t *testing.T) {
 				),
 			)
 
-			Then(t, "others 不应该包含标签行",
-				Expect(others,
+			Then(
+				t, "others 不应该包含标签行",
+				Expect(
+					others,
 					Be(func(actual []string) error {
 						for _, line := range actual {
 							if len(line) > 0 && (line[0] == '+' || line[0] == '@') {
@@ -81,11 +93,13 @@ func TestExtractCommentTags(t *testing.T) {
 
 			tags, others := ExtractCommentTags(commentLines, '+', '@')
 
-			Then(t, "标签map应该为空",
+			Then(
+				t, "标签map应该为空",
 				Expect(len(tags), Equal(0)),
 			)
 
-			Then(t, "others应该为空切片",
+			Then(
+				t, "others应该为空切片",
 				Expect(len(others), Equal(0)),
 			)
 		})
@@ -101,12 +115,15 @@ func TestExtractCommentTags(t *testing.T) {
 			tags, others := ExtractCommentTags(commentLines, '+', '@')
 
 			// THEN
-			Then(t, "标签map应该为空",
+			Then(
+				t, "标签map应该为空",
 				Expect(len(tags), Equal(0)),
 			)
 
-			Then(t, "others应该包含所有行",
-				Expect(others,
+			Then(
+				t, "others应该包含所有行",
+				Expect(
+					others,
 					Equal([]string{"Just a comment", "Another comment"}),
 				),
 			)
@@ -123,12 +140,15 @@ func TestExtractCommentTags(t *testing.T) {
 
 			tags, others := ExtractCommentTags(commentLines, '+', '@')
 
-			Then(t, "应该提取两个标签",
+			Then(
+				t, "应该提取两个标签",
 				Expect(len(tags), Equal(2)),
 			)
 
-			Then(t, "标签值应该正确",
-				Expect(tags,
+			Then(
+				t, "标签值应该正确",
+				Expect(
+					tags,
 					Equal(map[string][]string{
 						"tag1": {""},
 						"tag2": {"value"},
@@ -136,8 +156,10 @@ func TestExtractCommentTags(t *testing.T) {
 				),
 			)
 
-			Then(t, "others应该包含三行非标签",
-				Expect(others,
+			Then(
+				t, "others应该包含三行非标签",
+				Expect(
+					others,
 					Equal([]string{"Start", "Middle", "End"}),
 				),
 			)
@@ -154,8 +176,10 @@ func TestExtractCommentTags(t *testing.T) {
 
 			tags, _ := ExtractCommentTags(commentLines, '+', '@')
 
-			Then(t, "重复标签的值应该合并",
-				Expect(tags["same"],
+			Then(
+				t, "重复标签的值应该合并",
+				Expect(
+					tags["same"],
 					Equal([]string{"first", "second", "third"}),
 				),
 			)
@@ -164,7 +188,8 @@ func TestExtractCommentTags(t *testing.T) {
 
 	t.Run("错误处理场景", func(t *testing.T) {
 		t.Run("nil 输入应该安全处理", func(t *testing.T) {
-			Then(t, "nil输入不应该panic",
+			Then(
+				t, "nil输入不应该panic",
 				ExpectMust(func() error {
 					_, _ = ExtractCommentTags(nil, '+', '@')
 					return nil
@@ -180,14 +205,18 @@ func TestExtractCommentTags(t *testing.T) {
 
 			tags, _ := ExtractCommentTags(commentLines, '+', '@')
 
-			Then(t, "包含空格的标签值应该完整保留",
-				Expect(tags["tag"],
+			Then(
+				t, "包含空格的标签值应该完整保留",
+				Expect(
+					tags["tag"],
 					Equal([]string{"value with spaces"}),
 				),
 			)
 
-			Then(t, "另一个标签值也应该正确",
-				Expect(tags["another"],
+			Then(
+				t, "另一个标签值也应该正确",
+				Expect(
+					tags["another"],
 					Equal([]string{"more spaces here"}),
 				),
 			)

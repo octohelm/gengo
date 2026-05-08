@@ -17,7 +17,8 @@ func TestHandlerAPI(t *testing.T) {
 		h: slog.NewTextHandler(io.Discard, nil),
 	}
 
-	Then(t, "WithAttrs 与 WithGroup 应返回可用 handler",
+	Then(
+		t, "WithAttrs 与 WithGroup 应返回可用 handler",
 		Expect(h.WithAttrs([]slog.Attr{slog.String("k", "v")}), Be(cmp.NotNil[slog.Handler]())),
 		Expect(h.WithGroup("g"), Be(cmp.NotNil[slog.Handler]())),
 	)
@@ -34,7 +35,8 @@ func TestHandlerAPI(t *testing.T) {
 			return h.Handle(context.Background(), rType)
 		})
 
-		Then(t, "带 type 的记录应先缓存到对应 scope",
+		Then(
+			t, "带 type 的记录应先缓存到对应 scope",
 			Expect(len(h.pkgs["github.com/octohelm/gengo/pkg/gengo/testdata/runtime/c"]), Equal(1)),
 		)
 
@@ -54,12 +56,14 @@ func TestLoggerAPI(t *testing.T) {
 
 	t.Run("toAttrs", func(t *testing.T) {
 		ll := (&logger{}).WithValues("k", "v").(*logger)
-		Then(t, "无 span 时应仅返回原始 attrs",
+		Then(
+			t, "无 span 时应仅返回原始 attrs",
 			Expect(len(ll.toAttrs()), Equal(2)),
 		)
 
 		ll.spans = []string{"g1", "g2"}
-		Then(t, "有 span 时应追加 span 属性",
+		Then(
+			t, "有 span 时应追加 span 属性",
 			Expect(len(ll.toAttrs()), Equal(3)),
 			ExpectMust(func() error {
 				spanAttr, ok := ll.toAttrs()[2].(slog.Attr)
@@ -75,7 +79,8 @@ func TestLoggerAPI(t *testing.T) {
 	})
 
 	t.Run("Error", func(t *testing.T) {
-		Then(t, "Error 调用应可执行",
+		Then(
+			t, "Error 调用应可执行",
 			ExpectMust(func() error {
 				l.Error(errors.New("boom"))
 				return nil

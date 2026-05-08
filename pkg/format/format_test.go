@@ -4,10 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	"golang.org/x/mod/modfile"
-
 	"github.com/octohelm/x/cmp"
 	. "github.com/octohelm/x/testing/v2"
+	"golang.org/x/mod/modfile"
 
 	"github.com/octohelm/gengo/pkg/format"
 )
@@ -54,27 +53,32 @@ require (
 					},
 				}
 
-				Then(t, "Options应该正确",
+				Then(
+					t, "Options应该正确",
 					Expect(opts.LocalGroupPrefix, Equal(expected.LocalGroupPrefix)),
 					Expect(len(opts.ImportGroups), Equal(len(expected.ImportGroups))),
 				)
 
 				t.Run("验证导入分组", func(t *testing.T) {
 					group0, exists := opts.ImportGroups["0_controlled"]
-					Then(t, "0_controlled分组应该存在",
+					Then(
+						t, "0_controlled分组应该存在",
 						Expect(exists, Be(cmp.True())),
 					)
 
-					Then(t, "0_controlled分组前缀应该正确",
+					Then(
+						t, "0_controlled分组前缀应该正确",
 						Expect(group0.Prefixes, Equal(expected.ImportGroups["0_controlled"].Prefixes)),
 					)
 
 					group1, exists := opts.ImportGroups["1_internal"]
-					Then(t, "1_internal分组应该存在",
+					Then(
+						t, "1_internal分组应该存在",
 						Expect(exists, Be(cmp.True())),
 					)
 
-					Then(t, "1_internal分组前缀应该正确",
+					Then(
+						t, "1_internal分组前缀应该正确",
 						Expect(group1.Prefixes, Equal(expected.ImportGroups["1_internal"].Prefixes)),
 					)
 				})
@@ -99,7 +103,8 @@ func f() {
 		t.Run("WHEN 格式化源代码", func(t *testing.T) {
 			got, err := format.Source(source, format.Options{})
 
-			Then(t, "格式化应该成功",
+			Then(
+				t, "格式化应该成功",
 				Expect(err, Be(cmp.Nil[error]())),
 				Expect(got, Be(cmp.NotZero[[]byte]())),
 			)
@@ -113,7 +118,8 @@ func f() {
 }
 `)
 
-			Then(t, "格式化结果应该正确",
+			Then(
+				t, "格式化结果应该正确",
 				Expect(strings.TrimSpace(string(got)), Equal(expected)),
 			)
 		})
@@ -166,11 +172,13 @@ func f() {
 		t.Run("WHEN 使用Options格式化", func(t *testing.T) {
 			got, err := format.Source(source, opts)
 
-			Then(t, "格式化应该成功",
+			Then(
+				t, "格式化应该成功",
 				Expect(err, Be(cmp.Nil[error]())),
 			)
 
-			Then(t, "格式化结果应该正确",
+			Then(
+				t, "格式化结果应该正确",
 				Expect(
 					strings.TrimSpace(string(got)),
 					Equal(strings.TrimSpace(`
@@ -210,7 +218,8 @@ func f() {
 	_ = y.Y()
 	_ = z.Z()
 }
-`))),
+`)),
+				),
 			)
 		})
 	})
@@ -235,11 +244,13 @@ func f() {
 		t.Run("WHEN 格式化源代码", func(t *testing.T) {
 			got, err := format.Source(source, format.Options{})
 
-			Then(t, "格式化应该成功",
+			Then(
+				t, "格式化应该成功",
 				Expect(err, Be(cmp.Nil[error]())),
 			)
 
-			Then(t, "格式化结果应该正确",
+			Then(
+				t, "格式化结果应该正确",
 				Expect(
 					strings.TrimSpace(string(got)),
 					Equal(strings.TrimSpace(`

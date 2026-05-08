@@ -44,11 +44,13 @@ func TestSnippetAPI(t *testing.T) {
 			}
 		})
 
-		Then(t, "应按顺序展开片段",
+		Then(
+			t, "应按顺序展开片段",
 			Expect(renderSnippet(s), Equal("hello world")),
 		)
 
-		Then(t, "nil snippet 应输出空串",
+		Then(
+			t, "nil snippet 应输出空串",
 			Expect(renderSnippet(nilSnippet{}), Equal("")),
 		)
 	})
@@ -60,75 +62,90 @@ func TestSnippetAPI(t *testing.T) {
 			_ = yield(Block("b"))
 		})
 
-		Then(t, "应跳过空片段并顺序拼接",
+		Then(
+			t, "应跳过空片段并顺序拼接",
 			Expect(renderSnippet(snippets), Equal("ab")),
 		)
 
-		Then(t, "String 当前应返回空串",
+		Then(
+			t, "String 当前应返回空串",
 			Expect(snippets.String(), Equal("")),
 		)
 	})
 
 	t.Run("Comment", func(t *testing.T) {
-		Then(t, "多行注释应逐行输出",
+		Then(
+			t, "多行注释应逐行输出",
 			Expect(renderSnippet(Comment("first\nsecond")), Equal("// first\n// second")),
 		)
 	})
 
 	t.Run("Block", func(t *testing.T) {
-		Then(t, "应原样输出内容",
+		Then(
+			t, "应原样输出内容",
 			Expect(renderSnippet(Block("x := 1")), Equal("x := 1")),
 		)
 	})
 
 	t.Run("Value", func(t *testing.T) {
-		Then(t, "基础值应输出字面量",
+		Then(
+			t, "基础值应输出字面量",
 			Expect(renderSnippet(Value("demo")), Equal(`"demo"`)),
 		)
 	})
 
 	t.Run("GoDirective", func(t *testing.T) {
-		Then(t, "应输出 go 指令",
+		Then(
+			t, "应输出 go 指令",
 			Expect(renderSnippet(GoDirective("embed", "demo.txt")), Equal("//go:embed demo.txt")),
 		)
 
-		Then(t, "空 directive 应输出空串",
+		Then(
+			t, "空 directive 应输出空串",
 			Expect(renderSnippet(GoDirective("", "demo.txt")), Equal("")),
 		)
 
-		Then(t, "空参数应被跳过",
+		Then(
+			t, "空参数应被跳过",
 			Expect(renderSnippet(GoDirective("embed", "", "demo.txt")), Equal("//go:embed demo.txt")),
 		)
 	})
 
 	t.Run("ID", func(t *testing.T) {
-		Then(t, "同包类型引用应去掉包前缀",
+		Then(
+			t, "同包类型引用应去掉包前缀",
 			Expect(renderSnippet(ID(gengotypes.Ref("github.com/octohelm/gengo/pkg/gengo/snippet", "DemoItem"))), Equal("DemoItem")),
 		)
 
-		Then(t, "外部包类型引用应带本地名",
+		Then(
+			t, "外部包类型引用应带本地名",
 			Expect(renderSnippet(ID(gengotypes.Ref("fmt", "Stringer"))), Equal("fmt.Stringer")),
 		)
 	})
 
 	t.Run("PkgExpose 系列", func(t *testing.T) {
-		Then(t, "PkgExpose 应输出指定类型名",
+		Then(
+			t, "PkgExpose 应输出指定类型名",
 			Expect(renderSnippet(PkgExpose("github.com/octohelm/gengo/pkg/gengo/snippet", "DemoItem")), Equal("DemoItem")),
 		)
 
-		Then(t, "PkgExposeOf 应处理指针实例",
+		Then(
+			t, "PkgExposeOf 应处理指针实例",
 			Expect(renderSnippet(PkgExposeOf(&DemoItem{})), Equal("DemoItem")),
 		)
 
-		Then(t, "PkgExposeFor 应支持覆盖名称",
+		Then(
+			t, "PkgExposeFor 应支持覆盖名称",
 			Expect(renderSnippet(PkgExposeFor[DemoItem]("AliasItem")), Equal("AliasItem")),
 		)
 
-		Then(t, "PkgExposeFor 无覆盖名称时应输出真实类型名",
+		Then(
+			t, "PkgExposeFor 无覆盖名称时应输出真实类型名",
 			Expect(renderSnippet(PkgExposeFor[DemoItem]()), Equal("DemoItem")),
 		)
 
-		Then(t, "PkgExposeOf 遇到函数类型应 panic",
+		Then(
+			t, "PkgExposeOf 遇到函数类型应 panic",
 			ExpectMust(func() error {
 				panicked := false
 				defer func() {
@@ -148,11 +165,13 @@ func TestSnippetAPI(t *testing.T) {
 	})
 
 	t.Run("Sprintf", func(t *testing.T) {
-		Then(t, "应同时支持 %v 与 %T",
+		Then(
+			t, "应同时支持 %v 与 %T",
 			Expect(renderSnippet(Sprintf("%T = %v", reflect.TypeFor[DemoItem](), 1)), Equal("DemoItem = 1")),
 		)
 
-		Then(t, "Snippet 参数应按自身渲染",
+		Then(
+			t, "Snippet 参数应按自身渲染",
 			Expect(renderSnippet(Sprintf("%T = %v", Block("DemoValue"), Block("42"))), Equal("DemoValue = 42")),
 		)
 
@@ -194,18 +213,21 @@ func TestSnippetAPI(t *testing.T) {
 	t.Run("模板参数", func(t *testing.T) {
 		s := T("var @name = @value", IDArg("name", gengotypes.Ref("github.com/octohelm/gengo/pkg/gengo/snippet", "DemoItem")), ValueArg("value", "demo"))
 
-		Then(t, "命名参数应被替换",
+		Then(
+			t, "命名参数应被替换",
 			Expect(renderSnippet(s), Equal(`var DemoItem = "demo"`)),
 		)
 
-		Then(t, "Args 也应可作为模板参数集合",
+		Then(
+			t, "Args 也应可作为模板参数集合",
 			Expect(renderSnippet(T("@left + @right", Args{
 				"left":  Value(1),
 				"right": Value(2),
 			})), Equal("1 + 2")),
 		)
 
-		Then(t, "绑定为 nil 的参数应被跳过输出",
+		Then(
+			t, "绑定为 nil 的参数应被跳过输出",
 			Expect(renderSnippet(T("@left @right", Arg("left", Block("x")), Arg("right", Value(nil)))), Equal("x ")),
 		)
 
@@ -228,39 +250,47 @@ func TestSnippetAPI(t *testing.T) {
 	})
 
 	t.Run("IsNil", func(t *testing.T) {
-		Then(t, "空 Block 应为 nil",
+		Then(
+			t, "空 Block 应为 nil",
 			Expect(Block("").IsNil(), Be(cmp.True())),
 		)
 
-		Then(t, "Value(nil) 应为 nil",
+		Then(
+			t, "Value(nil) 应为 nil",
 			Expect(Value(nil).IsNil(), Be(cmp.True())),
 		)
 
-		Then(t, "Func 创建的 snippet 不应为 nil",
+		Then(
+			t, "Func 创建的 snippet 不应为 nil",
 			Expect(Func(func(ctx context.Context) iter.Seq[string] {
 				return func(yield func(string) bool) {}
 			}).IsNil(), Be(cmp.False())),
 		)
 
-		Then(t, "空模板应为 nil",
+		Then(
+			t, "空模板应为 nil",
 			Expect(T("").IsNil(), Be(cmp.True())),
 		)
 	})
 
 	t.Run("ID 其他分支", func(t *testing.T) {
-		Then(t, "非引用字符串应原样输出",
+		Then(
+			t, "非引用字符串应原样输出",
 			Expect(renderSnippet(ID("plain_text")), Equal("plain_text")),
 		)
 
-		Then(t, "引用字符串应按类型名输出",
+		Then(
+			t, "引用字符串应按类型名输出",
 			Expect(renderSnippet(ID("fmt.Stringer")), Equal("fmt.Stringer")),
 		)
 
-		Then(t, "reflect.Type 应输出类型字面量",
+		Then(
+			t, "reflect.Type 应输出类型字面量",
 			Expect(renderSnippet(ID(reflect.TypeFor[*DemoItem]())), Equal("*DemoItem")),
 		)
 
-		Then(t, "types.Type 应输出类型字面量",
+		Then(
+			t, "types.Type 应输出类型字面量",
 			Expect(renderSnippet(ID(gotypes.NewPointer(gotypes.Typ[gotypes.String]))), Equal("*string")),
 		)
 
@@ -272,11 +302,13 @@ func TestSnippetAPI(t *testing.T) {
 			p := u.Package("github.com/octohelm/gengo/pkg/gengo/snippet/testdata/alias")
 			timeAlias := p.Type("TimeAlias")
 
-			Then(t, "alias 类型应存在",
+			Then(
+				t, "alias 类型应存在",
 				Expect(timeAlias, Be(cmp.NotNil[*gotypes.TypeName]())),
 			)
 
-			Then(t, "应输出别名标识符",
+			Then(
+				t, "应输出别名标识符",
 				Expect(renderSnippet(ID(timeAlias.Type())), Equal("alias.TimeAlias")),
 			)
 		})
@@ -310,7 +342,8 @@ func TestSnippetAPI(t *testing.T) {
 				break
 			}
 
-			Then(t, "至少应迭代一次",
+			Then(
+				t, "至少应迭代一次",
 				Expect(count, Equal(1)),
 			)
 		})
@@ -323,7 +356,8 @@ func TestSnippetAPI(t *testing.T) {
 				return false
 			})
 
-			Then(t, "应只收到一次回调",
+			Then(
+				t, "应只收到一次回调",
 				Expect(count, Equal(1)),
 			)
 		})
@@ -343,7 +377,8 @@ func TestSnippetAPI(t *testing.T) {
 				return false
 			})
 
-			Then(t, "应只收到第一次回调",
+			Then(
+				t, "应只收到第一次回调",
 				Expect(count, Equal(1)),
 			)
 		})

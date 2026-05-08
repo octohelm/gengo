@@ -41,8 +41,10 @@ type OriginPatch origin.Origin
 		}, &partialStructGen{})
 	})
 
-	Then(t, "应生成 partial struct 并应用字段选项",
-		Expect(files, Be(testingutil.File("sample/zz_generated_test.partialstruct.go",
+	Then(
+		t, "应生成 partial struct 并应用字段选项",
+		Expect(files, Be(testingutil.File(
+			"sample/zz_generated_test.partialstruct.go",
 			testingutil.Contains(
 				"type OriginPatch struct",
 				"Keep string `json:\"keep\"`",
@@ -68,7 +70,8 @@ type Bad string
 			})
 		})
 
-		Then(t, "应返回非 struct 错误",
+		Then(
+			t, "应返回非 struct 错误",
 			ExpectDo(func() error {
 				return m.GenerateError(gengo.GeneratorArgs{
 					Entrypoint:         []string{m.ImportPath("sample")},
@@ -92,7 +95,8 @@ type Bad struct {
 			})
 		})
 
-		Then(t, "应返回缺少来源类型声明错误",
+		Then(
+			t, "应返回缺少来源类型声明错误",
 			ExpectDo(func() error {
 				return m.GenerateError(gengo.GeneratorArgs{
 					Entrypoint:         []string{m.ImportPath("sample")},

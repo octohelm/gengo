@@ -73,16 +73,19 @@ func TestGengoCtxHelpers(t *testing.T) {
 	c := mustCtxOnPackage(t, "github.com/octohelm/gengo/pkg/gengo/testdata/runtime/c")
 
 	t.Run("Package 与 LocateInPackage", func(t *testing.T) {
-		Then(t, "空 importPath 应返回当前包",
+		Then(
+			t, "空 importPath 应返回当前包",
 			Expect(c.Package(""), Equal(c.pkg)),
 		)
 
-		Then(t, "指定 importPath 应返回对应包",
+		Then(
+			t, "指定 importPath 应返回对应包",
 			Expect(c.Package("github.com/octohelm/gengo/pkg/gengo/testdata/runtime/c"), Equal(c.pkg)),
 		)
 
 		kubeType := c.pkg.Type("KubePkg")
-		Then(t, "LocateInPackage 应定位到所属包",
+		Then(
+			t, "LocateInPackage 应定位到所属包",
 			Expect(c.LocateInPackage(kubeType.Pos()), Equal(c.pkg)),
 		)
 	})
@@ -93,20 +96,23 @@ func TestGengoCtxHelpers(t *testing.T) {
 		opts := c.OptsOf(kubeObj, "deepcopy")
 		v, ok := opts.Get("interfaces")
 
-		Then(t, "应提取到 deepcopy 的参数选项",
+		Then(
+			t, "应提取到 deepcopy 的参数选项",
 			Expect(v, Equal("Object")),
 			Expect(ok, Be(cmp.True())),
 		)
 
 		tags, doc := c.Doc(kubeObj)
-		Then(t, "应包含 gengo 标签",
+		Then(
+			t, "应包含 gengo 标签",
 			Expect(tags["gengo:deepcopy"], Equal([]string{""})),
 			Expect(doc != nil, Be(cmp.True())),
 		)
 	})
 
 	t.Run("Render 系列", func(t *testing.T) {
-		Then(t, "Logger/Writer 应可用",
+		Then(
+			t, "Logger/Writer 应可用",
 			Expect(c.Logger(), Be(cmp.NotNil[logr.Logger]())),
 			Expect(c.Writer(), Be(cmp.NotNil[SnippetWriter]())),
 		)
@@ -114,7 +120,8 @@ func TestGengoCtxHelpers(t *testing.T) {
 		c.Render(snippet.Block("const A = 1\n"))
 		c.RenderT("const @name = @value\n", snippet.IDArg("name", "B"), snippet.ValueArg("value", 2))
 
-		Then(t, "Render 输出应写入 genfile",
+		Then(
+			t, "Render 输出应写入 genfile",
 			Expect(c.genfile.body.String(), Be(func(s string) error {
 				if s == "" {
 					return errors.New("expected rendered output")
@@ -126,17 +133,20 @@ func TestGengoCtxHelpers(t *testing.T) {
 
 	t.Run("Defer", func(t *testing.T) {
 		c.Defer(func(c Context) error { return nil })
-		Then(t, "Defer 应记录回调",
+		Then(
+			t, "Defer 应记录回调",
 			Expect(len(c.defers), Be(cmp.Gt(0))),
 		)
 	})
 
 	t.Run("New", func(t *testing.T) {
-		Then(t, "默认应按类型创建新实例",
+		Then(
+			t, "默认应按类型创建新实例",
 			Expect(c.New(&namedOnlyGenerator{name: "x"}).Name(), Equal("")),
 		)
 
-		Then(t, "实现 GeneratorNewer 时应走自定义 New",
+		Then(
+			t, "实现 GeneratorNewer 时应走自定义 New",
 			Expect(c.New(&newerGenerator{}).Name(), Equal("newer")),
 		)
 	})
@@ -154,11 +164,13 @@ func TestGenerateBranches(t *testing.T) {
 		Must(t, func() error {
 			return c.doGenerateNamedType(context.Background(), &namedOnlyGenerator{name: "x", err: ErrIgnore}, named)
 		})
-		Then(t, "ErrIgnore 分支应标记 ignore",
+		Then(
+			t, "ErrIgnore 分支应标记 ignore",
 			Expect(c.ignore, Be(cmp.True())),
 		)
 
-		Then(t, "普通错误应向上返回",
+		Then(
+			t, "普通错误应向上返回",
 			ExpectMust(func() error {
 				err := c.doGenerateNamedType(context.Background(), &namedOnlyGenerator{name: "x", err: errors.New("boom")}, named)
 				if err == nil {
@@ -181,7 +193,8 @@ func TestGenerateBranches(t *testing.T) {
 			return c.doGenerateAliasType(context.Background(), &aliasOnlyGenerator{name: "x", err: ErrIgnore}, alias)
 		})
 
-		Then(t, "普通错误应向上返回",
+		Then(
+			t, "普通错误应向上返回",
 			ExpectMust(func() error {
 				err := c.doGenerateAliasType(context.Background(), &aliasOnlyGenerator{name: "x", err: errors.New("boom")}, alias)
 				if err == nil {

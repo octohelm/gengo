@@ -13,7 +13,8 @@ func ExampleFile() {
 		"sample/zz_generated.demo.go": "package sample\nfunc Demo() {}\n",
 	}
 
-	err := testingutil.File("sample/zz_generated.demo.go",
+	err := testingutil.File(
+		"sample/zz_generated.demo.go",
 		testingutil.Contains("package sample"),
 		testingutil.NotContains("func Missing()"),
 		testingutil.Count("func ", cmp.Eq(1)),

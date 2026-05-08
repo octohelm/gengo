@@ -25,7 +25,8 @@ func Fn() any {
 
 		results, _ := p.ResultsOf(fn)
 
-		Then(t, "get results",
+		Then(
+			t, "get results",
 			Expect(results.String(), Equal("(2)")),
 		)
 	})
@@ -46,7 +47,8 @@ func Fn() any {
 
 		results, _ := p.ResultsOf(fn)
 
-		Then(t, "get results",
+		Then(
+			t, "get results",
 			Expect(results.String(), Equal("(untyped nil)")),
 		)
 	})
@@ -69,7 +71,8 @@ func Fn() (any, error) {
 
 		results, _ := p.ResultsOf(fn)
 
-		Then(t, "get results",
+		Then(
+			t, "get results",
 			Expect(results.String(), Equal("(1, *errors.errorString)")),
 		)
 	})
@@ -100,7 +103,8 @@ func Fn() any {
 
 		results, _ := p.ResultsOf(fn)
 
-		Then(t, "get results",
+		Then(
+			t, "get results",
 			Expect(results.String(), Equal("(2)")),
 		)
 	})
@@ -123,7 +127,8 @@ func Fn() any {
 
 		results, _ := p.ResultsOf(fn)
 
-		Then(t, "get results",
+		Then(
+			t, "get results",
 			Expect(results.String(), Equal(`(string | "2")`)),
 		)
 	})
@@ -160,7 +165,8 @@ func Fn() (a any, b String) {
 
 		results, _ := p.ResultsOf(fn)
 
-		Then(t, "get results",
+		Then(
+			t, "get results",
 			Expect(results.String(), Equal(`("a1" | "a2" | "a3", "b1" | "b2" | "b3")`)),
 		)
 	})
@@ -182,7 +188,8 @@ func Fn() (ret string) {
 
 		results, _ := p.ResultsOf(fn)
 
-		Then(t, "get results",
+		Then(
+			t, "get results",
 			Expect(results.String(), Equal(`("1")`)),
 		)
 	})
@@ -208,7 +215,8 @@ func Fn() (any) {
 
 		results, _ := p.ResultsOf(fn)
 
-		Then(t, "get results",
+		Then(
+			t, "get results",
 			Expect(results.String(), Equal(`("1")`)),
 		)
 	})
@@ -238,7 +246,8 @@ func Fn() error {
 
 		results, _ := p.ResultsOf(fn)
 
-		Then(t, "get results",
+		Then(
+			t, "get results",
 			Expect(results.String(), Equal(`(*errors.errorString)`)),
 		)
 	})
@@ -283,7 +292,8 @@ func Fn() (any, error) {
 
 		results, _ := p.ResultsOf(fn)
 
-		Then(t, "get results",
+		Then(
+			t, "get results",
 			Expect(results.String(), Equal(`(untyped nil, *errors.errorString | untyped nil)`)),
 		)
 	})
@@ -310,7 +320,8 @@ func Fn() (a any) {
 
 		results, _ := p.ResultsOf(fn)
 
-		Then(t, "get results",
+		Then(
+			t, "get results",
 			Expect(results.String(), Equal(`("1")`)),
 		)
 	})
@@ -340,7 +351,8 @@ func Multiple() (any, error) {
 		{
 			fn := p.Function("Single")
 			results, _ := p.ResultsOf(fn)
-			Then(t, "get results",
+			Then(
+				t, "get results",
 				Expect(results.String(), Equal(`(string)`)),
 			)
 		}
@@ -348,7 +360,8 @@ func Multiple() (any, error) {
 		{
 			fn := p.Function("Multiple")
 			results, _ := p.ResultsOf(fn)
-			Then(t, "get results",
+			Then(
+				t, "get results",
 				Expect(results.String(), Equal(`(string, error)`)),
 			)
 		}

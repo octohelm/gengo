@@ -54,8 +54,10 @@ type Skipped interface {
 		}, &deepcopyGen{})
 	})
 
-	Then(t, "应生成 deepcopy 方法",
-		Expect(files, Be(testingutil.File("sample/zz_generated_test.deepcopy.go",
+	Then(
+		t, "应生成 deepcopy 方法",
+		Expect(files, Be(testingutil.File(
+			"sample/zz_generated_test.deepcopy.go",
 			testingutil.Contains(
 				"func (in *Item) DeepCopyObject() Object",
 				"func (in *Item) DeepCopy() *Item",

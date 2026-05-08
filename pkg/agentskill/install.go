@@ -14,9 +14,10 @@ import (
 )
 
 type SkillRef struct {
-	Name    string
-	Module  string
-	Version string
+	Name      string
+	Module    string
+	Version   string
+	LocalPath string // 非空时表示本地 replace 指向的文件系统路径
 }
 
 type SkillInstall struct {
@@ -83,12 +84,17 @@ func PlanSkillInstall(projectRoot string, goModCache string, skills []SkillRef) 
 	}
 
 	for _, skill := range skills {
-		install, err := planSkillInstall(skillsDir, goModCache, skill)
+		resolved := skill
+		if resolved.LocalPath != "" && !filepath.IsAbs(resolved.LocalPath) {
+			resolved.LocalPath = filepath.Join(projectRoot, resolved.LocalPath)
+		}
+
+		install, err := planSkillInstall(skillsDir, goModCache, resolved)
 		if err != nil {
 			return nil, err
 		}
 
-		plan.GitIgnoreNames = append(plan.GitIgnoreNames, skill.Name)
+		plan.GitIgnoreNames = append(plan.GitIgnoreNames, resolved.Name)
 		plan.Skills = append(plan.Skills, install)
 	}
 
@@ -114,6 +120,27 @@ func ApplyInstallPlan(plan *InstallPlan) error {
 }
 
 func planSkillInstall(skillsDir string, goModCache string, skill SkillRef) (SkillInstall, error) {
+	if skill.LocalPath != "" {
+		source := filepath.Join(skill.LocalPath, ".agents", "skills", skill.Name)
+		info, err := os.Stat(source)
+		if err != nil {
+			if os.IsNotExist(err) {
+				return SkillInstall{}, fmt.Errorf("skill %q not found under local path: %s", skill.Name, source)
+			}
+			return SkillInstall{}, fmt.Errorf("stat skill source %q: %w", source, err)
+		}
+		if !info.IsDir() {
+			return SkillInstall{}, fmt.Errorf("skill source %q is not a directory", source)
+		}
+
+		return SkillInstall{
+			Ref:         skill,
+			ModuleRoot:  skill.LocalPath,
+			Source:      source,
+			Destination: filepath.Join(skillsDir, skill.Name),
+		}, nil
+	}
+
 	moduleRoot, source, err := cachedSkillPath(goModCache, skill)
 	if err != nil {
 		return SkillInstall{}, err
@@ -215,7 +242,128 @@ func ParseGoModSkills(data []byte) ([]SkillRef, error) {
 		}
 	}
 
+	replaces, err := parseReplaces(data)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range out {
+		applyReplace(&out[i], replaces)
+	}
+
 	return out, nil
+}
+
+type replaceEntry struct {
+	OldVersion string
+	NewPath    string
+	NewVersion string
+}
+
+func parseReplaces(data []byte) (map[string][]replaceEntry, error) {
+	replaces := make(map[string][]replaceEntry)
+
+	inReplaceBlock := false
+
+	for _, raw := range bytes.Split(data, []byte("\n")) {
+		line := strings.TrimSpace(string(raw))
+
+		switch {
+		case line == "":
+			continue
+		case line == "replace (":
+			inReplaceBlock = true
+			continue
+		case inReplaceBlock && line == ")":
+			inReplaceBlock = false
+			continue
+		}
+
+		oldModule, oldVersion, newPath, newVersion, ok := parseReplaceLine(line, inReplaceBlock)
+		if !ok {
+			continue
+		}
+
+		replaces[oldModule] = append(replaces[oldModule], replaceEntry{
+			OldVersion: oldVersion,
+			NewPath:    newPath,
+			NewVersion: newVersion,
+		})
+	}
+
+	return replaces, nil
+}
+
+func parseReplaceLine(line string, inReplaceBlock bool) (string, string, string, string, bool) {
+	if !inReplaceBlock {
+		if !strings.HasPrefix(line, "replace ") {
+			return "", "", "", "", false
+		}
+		line = strings.TrimSpace(strings.TrimPrefix(line, "replace "))
+	}
+
+	parts := strings.SplitN(line, " => ", 2)
+	if len(parts) != 2 {
+		return "", "", "", "", false
+	}
+
+	left := strings.Fields(strings.TrimSpace(parts[0]))
+	right := strings.Fields(strings.TrimSpace(parts[1]))
+
+	if len(left) < 1 || len(right) < 1 {
+		return "", "", "", "", false
+	}
+
+	oldModule := left[0]
+	var oldVersion string
+	if len(left) >= 2 {
+		oldVersion = left[1]
+	}
+
+	newPath := right[0]
+	var newVersion string
+	if len(right) >= 2 {
+		newVersion = right[1]
+	}
+
+	return oldModule, oldVersion, newPath, newVersion, true
+}
+
+func applyReplace(skill *SkillRef, replaces map[string][]replaceEntry) {
+	entries, ok := replaces[skill.Module]
+	if !ok {
+		return
+	}
+
+	for _, entry := range entries {
+		if entry.OldVersion != "" && entry.OldVersion == skill.Version {
+			resolveReplace(skill, entry)
+			return
+		}
+	}
+
+	for _, entry := range entries {
+		if entry.OldVersion == "" {
+			resolveReplace(skill, entry)
+			return
+		}
+	}
+}
+
+func resolveReplace(skill *SkillRef, entry replaceEntry) {
+	if isLocalPath(entry.NewPath) {
+		skill.LocalPath = entry.NewPath
+		return
+	}
+
+	skill.Module = entry.NewPath
+	if entry.NewVersion != "" {
+		skill.Version = entry.NewVersion
+	}
+}
+
+func isLocalPath(path string) bool {
+	return strings.HasPrefix(path, ".") || filepath.IsAbs(path)
 }
 
 func parseSkillComment(line string) (string, bool) {

@@ -22,7 +22,8 @@ func render(s snippet.Snippet) string {
 }
 
 func ExampleT() {
-	s := snippet.T("type @Name struct { Value @Value }\n",
+	s := snippet.T(
+		"type @Name struct { Value @Value }\n",
 		snippet.IDArg("Name", "User"),
 		snippet.IDArg("Value", "string"),
 	)

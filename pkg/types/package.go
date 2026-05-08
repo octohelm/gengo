@@ -8,9 +8,8 @@ import (
 	"strings"
 	"sync"
 
-	"golang.org/x/tools/go/packages"
-
 	"github.com/octohelm/x/ptr"
+	"golang.org/x/tools/go/packages"
 )
 
 // Module 对 packages.Module 做了一层包装，便于后续扩展。

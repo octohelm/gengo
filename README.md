@@ -6,8 +6,12 @@
 
 ## 快速开始
 
+```
+just go test  # 运行测试
+just go vet   # 代码检查
+```
+
 - 查看仓库统一入口：`just`
-- 查看 Go 工具链入口：`just go`
 - 先阅读核心能力：[`pkg/gengo`](./pkg/gengo)
 
 ## 职责与边界

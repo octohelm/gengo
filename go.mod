@@ -8,16 +8,17 @@ tool (
 )
 
 // +gengo:import:group=0_controlled
+
 require (
 	// +skill:testing-guideline
-	github.com/octohelm/x v0.0.0-20260423102402-017813b113b1
+	github.com/octohelm/x v0.0.0-20260508075008-3bb151cb7bd8
 )
 
 require (
 	golang.org/x/mod v0.35.0
 	golang.org/x/text v0.36.0
 	golang.org/x/tools v0.44.0
-	mvdan.cc/gofumpt v0.9.2
+	mvdan.cc/gofumpt v0.10.0
 )
 
 require (

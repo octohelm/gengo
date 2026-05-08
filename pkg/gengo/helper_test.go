@@ -24,11 +24,13 @@ func TestPkgImportPathAndExpose(t *testing.T) {
 			t.Run("THEN 解析包导入路径和暴露名称", func(t *testing.T) {
 				pkg, expose := gengo.PkgImportPathAndExpose(refStr)
 
-				Then(t, "包导入路径应该正确",
+				Then(
+					t, "包导入路径应该正确",
 					Expect(pkg, Equal("github.com/octohelm/gengo/pkg/gengo_test")),
 				)
 
-				Then(t, "暴露名称应该正确",
+				Then(
+					t, "暴露名称应该正确",
 					Expect(expose, Equal("List")),
 				)
 			})
@@ -57,11 +59,13 @@ func TestPkgImportPathAndExpose(t *testing.T) {
 
 				pkg, expose := gengo.PkgImportPathAndExpose(refStr)
 
-				Then(t, "包导入路径匹配",
+				Then(
+					t, "包导入路径匹配",
 					Expect(pkg, Equal(tc.expectedPkg)),
 				)
 
-				Then(t, "暴露名称匹配",
+				Then(
+					t, "暴露名称匹配",
 					Expect(expose, Equal(tc.expectedExpose)),
 				)
 			})
@@ -75,11 +79,13 @@ func TestPkgImportPathAndExpose(t *testing.T) {
 			t.Run("内置string类型", func(t *testing.T) {
 				pkg, expose := gengo.PkgImportPathAndExpose("string")
 
-				Then(t, "内置类型应该返回空包路径",
+				Then(
+					t, "内置类型应该返回空包路径",
 					Expect(pkg, Equal("")),
 				)
 
-				Then(t, "内置类型应该返回类型名",
+				Then(
+					t, "内置类型应该返回类型名",
 					Expect(expose, Equal("string")),
 				)
 			})

@@ -5,10 +5,9 @@ import (
 	"os"
 	"testing"
 
-	gopackages "golang.org/x/tools/go/packages"
-
 	"github.com/octohelm/x/cmp"
 	. "github.com/octohelm/x/testing/v2"
+	gopackages "golang.org/x/tools/go/packages"
 )
 
 func TestLoad(t *testing.T) {
@@ -27,7 +26,8 @@ func TestLoad(t *testing.T) {
 			t.Run("THEN 获取指定包", func(t *testing.T) {
 				p := u.Package("github.com/octohelm/gengo/pkg/types/testdata/a")
 
-				Then(t, "包应该存在",
+				Then(
+					t, "包应该存在",
 					Expect(p, Be(cmp.NotNil[Package]())),
 				)
 
@@ -35,13 +35,15 @@ func TestLoad(t *testing.T) {
 					t.Run("常量注释", func(t *testing.T) {
 						c := p.Constant("GENDER__MALE")
 
-						Then(t, "常量应该存在",
+						Then(
+							t, "常量应该存在",
 							Expect(c, Be(cmp.NotNil[*types.Const]())),
 						)
 
 						comments := p.Comment(c.Pos())
 
-						Then(t, "注释应该正确",
+						Then(
+							t, "注释应该正确",
 							Expect(comments, Equal([]string{"男"})),
 						)
 					})
@@ -49,19 +51,22 @@ func TestLoad(t *testing.T) {
 					t.Run("结构体注释", func(t *testing.T) {
 						tpe := p.Type("Struct")
 
-						Then(t, "类型应该存在",
+						Then(
+							t, "类型应该存在",
 							Expect(tpe, Be(cmp.NotNil[*types.TypeName]())),
 						)
 
 						_, lines := p.Doc(tpe.Pos())
 
-						Then(t, "结构体文档应该正确",
+						Then(
+							t, "结构体文档应该正确",
 							Expect(lines, Equal([]string{"Struct"})),
 						)
 
 						s := tpe.Type().(*types.Named).Underlying().(*types.Struct)
 
-						Then(t, "结构体字段数量正确",
+						Then(
+							t, "结构体字段数量正确",
 							Expect(s.NumFields(), Be(cmp.Gt(0))),
 						)
 
@@ -75,7 +80,8 @@ func TestLoad(t *testing.T) {
 										foundID = true
 										_, lines := p.Doc(f.Pos())
 
-										Then(t, "ID字段文档应该正确",
+										Then(
+											t, "ID字段文档应该正确",
 											Expect(lines, Equal([]string{"StructID"})),
 										)
 									}
@@ -84,18 +90,21 @@ func TestLoad(t *testing.T) {
 										foundSlice = true
 										_, lines := p.Doc(f.Pos())
 
-										Then(t, "Slice 字段应该没有文档",
+										Then(
+											t, "Slice 字段应该没有文档",
 											Expect(len(lines), Equal(0)),
 										)
 									}
 								})
 							}
 
-							Then(t, "应该找到 ID 字段",
+							Then(
+								t, "应该找到 ID 字段",
 								Expect(foundID, Be(cmp.True())),
 							)
 
-							Then(t, "应该找到 Slice 字段",
+							Then(
+								t, "应该找到 Slice 字段",
 								Expect(foundSlice, Be(cmp.True())),
 							)
 						})
@@ -105,20 +114,23 @@ func TestLoad(t *testing.T) {
 				t.Run("方法测试", func(t *testing.T) {
 					tpe := p.Type("FakeBool")
 
-					Then(t, "类型应该存在",
+					Then(
+						t, "类型应该存在",
 						Expect(tpe, Be(cmp.NotNil[*types.TypeName]())),
 					)
 
 					namedType := tpe.Type().(*types.Named)
 
-					Then(t, "不包括嵌入式方法时",
+					Then(
+						t, "不包括嵌入式方法时",
 						Expect(
 							len(p.MethodsOf(namedType, false)),
 							Be(cmp.Eq(1)),
 						),
 					)
 
-					Then(t, "包括嵌入式方法时",
+					Then(
+						t, "包括嵌入式方法时",
 						Expect(
 							len(p.MethodsOf(namedType, true)),
 							Be(cmp.Eq(1)),
@@ -151,13 +163,15 @@ func TestLoad(t *testing.T) {
 						t.Run(funcName, func(t *testing.T) {
 							fn := p.Function(funcName)
 
-							Then(t, "函数应该存在",
+							Then(
+								t, "函数应该存在",
 								Expect(fn, Be(cmp.NotNil[*types.Func]())),
 							)
 
 							ar, _ := p.ResultsOf(fn)
 
-							Then(t, "结果字符串应该匹配",
+							Then(
+								t, "结果字符串应该匹配",
 								Expect(ar.String(), Equal(expectedResult)),
 							)
 						})

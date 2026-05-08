@@ -51,7 +51,8 @@ func TestSplit(t *testing.T) {
 			ret := Split(c[0])
 			expect := c[1:]
 
-			Then(t, "分割结果应匹配预期",
+			Then(
+				t, "分割结果应匹配预期",
 				Expect(ret, Equal(expect)),
 			)
 		})
