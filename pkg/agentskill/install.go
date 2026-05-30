@@ -78,7 +78,7 @@ func PlanSkillInstall(projectRoot string, goModCache string, skills []SkillRef) 
 
 	plan := &InstallPlan{
 		SkillsDir:      skillsDir,
-		GitIgnorePath:  filepath.Join(skillsDir, ".gitignore"),
+		GitIgnorePath:  filepath.Join(skillsDir, "../.gitignore"),
 		GitIgnoreNames: make([]string, 0, len(skills)),
 		Skills:         make([]SkillInstall, 0, len(skills)),
 	}
@@ -94,7 +94,7 @@ func PlanSkillInstall(projectRoot string, goModCache string, skills []SkillRef) 
 			return nil, err
 		}
 
-		plan.GitIgnoreNames = append(plan.GitIgnoreNames, resolved.Name)
+		plan.GitIgnoreNames = append(plan.GitIgnoreNames, fmt.Sprintf("skills/%s", resolved.Name))
 		plan.Skills = append(plan.Skills, install)
 	}
 
