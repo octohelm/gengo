@@ -8,10 +8,7 @@ import (
 	"path/filepath"
 	"slices"
 
-	"golang.org/x/mod/sumdb/dirhash"
 	"golang.org/x/tools/go/packages"
-
-	"github.com/octohelm/gengo/pkg/sumfile"
 )
 
 const (
@@ -25,12 +22,21 @@ const (
 	LoadSyntax = LoadTypes | packages.NeedSyntax | packages.NeedTypesInfo
 	// LoadAllSyntax 在 LoadSyntax 基础上额外加载依赖和模块元信息。
 	LoadAllSyntax = LoadSyntax | packages.NeedDeps | packages.NeedModule
+	// LoadForHash 加载计算摘要所需的最小信息（不含类型与语法）。
+	LoadForHash = LoadImports | packages.NeedDeps | packages.NeedModule
 )
 
 // WithDir 为 Load 设置 packages.Config.Dir。
 func WithDir(dir string) func(c *packages.Config) {
 	return func(c *packages.Config) {
 		c.Dir = dir
+	}
+}
+
+// WithMode 为 Load 设置 packages.Config.Mode，覆盖默认的 LoadAllSyntax。
+func WithMode(mode packages.LoadMode) func(c *packages.Config) {
+	return func(c *packages.Config) {
+		c.Mode = mode
 	}
 }
 
@@ -55,9 +61,6 @@ func Load(patterns []string, options ...func(c *packages.Config)) (*Universe, er
 	u := &Universe{
 		fset: fset,
 		pkgs: map[string]Package{},
-		sumFile: &sumfile.File{
-			Data: map[string]string{},
-		},
 	}
 
 	directPkgPaths := map[string]bool{}
@@ -89,17 +92,6 @@ func Load(patterns []string, options ...func(c *packages.Config)) (*Universe, er
 			// when is sub pkg of root pkg
 			if p.Module != nil && rootPkgPath == p.Module.Path {
 				localPkgPaths[p.PkgPath] = directPkgPaths[p.PkgPath]
-
-				if pkgDir := p.Dir; pkgDir != "" {
-					x, _ := dirhash.HashDir(pkgDir, "", dirhash.Hash1)
-					u.sumFile.Data[p.PkgPath] = x
-
-					if mod := pkg.Module(); mod != nil {
-						if u.sumFile.Dir == "" {
-							u.sumFile.Dir = mod.Dir
-						}
-					}
-				}
 			}
 		}
 	}
@@ -132,12 +124,6 @@ type Universe struct {
 	fset          *token.FileSet
 	pkgs          map[string]Package
 	localPkgPaths map[string]bool
-	sumFile       *sumfile.File
-}
-
-// SumFile 返回当前 Universe 计算出的包摘要文件。
-func (v *Universe) SumFile() *sumfile.File {
-	return v.sumFile
 }
 
 // LocalPkgPaths 迭代本地包路径，并标记它是否是直接加载目标。

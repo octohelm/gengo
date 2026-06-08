@@ -105,20 +105,50 @@ func TestGenfileAPI(t *testing.T) {
 }
 
 func TestPkgExecuteCachedAndCleanup(t *testing.T) {
-	c := mustCtxOnPackage(t, "github.com/octohelm/gengo/pkg/gengo/testdata/runtime/c")
-	pkgPath := c.pkg.Pkg().Path()
+	pkgPath := "github.com/octohelm/gengo/pkg/gengo/testdata/runtime/c"
+	cacheDir := t.TempDir()
 
-	t.Run("pkgChanged false 时应命中 cached 分支", func(t *testing.T) {
-		c.args.Force = false
-		c.sumFile = c.universe.SumFile()
+	t.Run("cache 命中时应跳过生成", func(t *testing.T) {
+		// 第一次执行：写入 cache
+		executor := MustValue(t, func() (Executor, error) {
+			return NewExecutor(&GeneratorArgs{
+				Entrypoint:         []string{pkgPath},
+				OutputFileBaseName: "zz_generated_api_test_cache",
+				CacheDir:           cacheDir,
+			})
+		})
+		c := executor.(*gengoCtx)
+		c.pkg = c.universe.Package(pkgPath)
+		c.l = newLogger()
 
 		Must(t, func() error {
-			return c.pkgExecute(context.Background(), pkgPath)
+			return c.pkgExecute(context.Background(), pkgPath, &namedOnlyGenerator{name: "deepcopy"})
+		})
+
+		// 第二次执行：应从 cache 命中
+		c2 := executor.(*gengoCtx)
+		c2.pkg = c2.universe.Package(pkgPath)
+		c2.l = newLogger()
+		c2.args.NoCache = false
+
+		Must(t, func() error {
+			return c2.pkgExecute(context.Background(), pkgPath, &namedOnlyGenerator{name: "deepcopy"})
 		})
 	})
 
 	t.Run("应删除遗留生成文件", func(t *testing.T) {
-		staleFilename := filepath.Join(c.pkg.SourceDir(), "zz_generated_api_test_cleanup.stale.go")
+		// 先创建 stale 文件，再 Load 包，这样 stale 文件会被 AST 扫描捕获
+		tmpExec := MustValue(t, func() (Executor, error) {
+			return NewExecutor(&GeneratorArgs{
+				Entrypoint: []string{pkgPath},
+				NoCache:    true,
+				CacheDir:   t.TempDir(),
+			})
+		})
+		tmpCtx := tmpExec.(*gengoCtx)
+		sourceDir := tmpCtx.universe.Package(pkgPath).SourceDir()
+
+		staleFilename := filepath.Join(sourceDir, "zz_generated_api_test_cleanup.stale.go")
 		Must(t, func() error {
 			return os.WriteFile(staleFilename, []byte("package c\n"), 0o644)
 		})
@@ -128,9 +158,10 @@ func TestPkgExecuteCachedAndCleanup(t *testing.T) {
 
 		executor := MustValue(t, func() (Executor, error) {
 			return NewExecutor(&GeneratorArgs{
-				Entrypoint:         []string{"github.com/octohelm/gengo/pkg/gengo/testdata/runtime/c"},
+				Entrypoint:         []string{pkgPath},
 				OutputFileBaseName: "zz_generated_api_test_cleanup",
-				Force:              true,
+				NoCache:            true,
+				CacheDir:           t.TempDir(),
 			})
 		})
 		cc := executor.(*gengoCtx)

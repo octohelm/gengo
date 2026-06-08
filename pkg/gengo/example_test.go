@@ -39,7 +39,7 @@ func ExampleNewExecutor() {
 	executor, err := gengo.NewExecutor(&gengo.GeneratorArgs{
 		Entrypoint:         []string{"github.com/octohelm/gengo/pkg/gengo/testdata/runtime/b"},
 		OutputFileBaseName: outputBaseName,
-		Force:              true,
+		NoCache:            true,
 	})
 	if err != nil {
 		panic(err)

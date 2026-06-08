@@ -5,14 +5,11 @@ import (
 	"go/constant"
 	"go/parser"
 	gotypes "go/types"
-	"maps"
 	"path/filepath"
 	"testing"
 
 	"github.com/octohelm/x/cmp"
 	. "github.com/octohelm/x/testing/v2"
-
-	"github.com/octohelm/gengo/pkg/sumfile"
 )
 
 func TestHelpers(t *testing.T) {
@@ -263,26 +260,6 @@ func TestUniverseQueries(t *testing.T) {
 	})
 
 	p := u.Package("github.com/octohelm/gengo/pkg/types/testdata/a")
-
-	t.Run("SumFile 与 LocalPkgPaths", func(t *testing.T) {
-		Then(
-			t, "应生成 sumfile",
-			Expect(u.SumFile(), Be(cmp.NotNil[*sumfile.File]())),
-		)
-
-		localPkgPaths := maps.Collect(u.LocalPkgPaths())
-
-		Then(
-			t, "应包含直接加载包",
-			Expect(localPkgPaths["github.com/octohelm/gengo/pkg/types/testdata/a"], Be(cmp.True())),
-		)
-
-		Then(
-			t, "应包含同模块下的间接本地包",
-			Expect(localPkgPaths["github.com/octohelm/gengo/pkg/types/testdata/a/b"], Be(cmp.False())),
-			Expect(localPkgPaths["github.com/octohelm/gengo/pkg/types/testdata/a/x"], Be(cmp.False())),
-		)
-	})
 
 	t.Run("LocateInPackage 与 SourceDir", func(t *testing.T) {
 		structType := p.Type("Struct")

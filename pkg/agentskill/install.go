@@ -265,7 +265,7 @@ func parseReplaces(data []byte) (map[string][]replaceEntry, error) {
 
 	inReplaceBlock := false
 
-	for _, raw := range bytes.Split(data, []byte("\n")) {
+	for raw := range bytes.SplitSeq(data, []byte("\n")) {
 		line := strings.TrimSpace(string(raw))
 
 		switch {

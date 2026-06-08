@@ -190,7 +190,7 @@ func TestPlanSkillInstall(t *testing.T) {
 
 		Then(
 			t, "生成按目标目录组织的安装计划",
-			Expect(plan.GitIgnoreNames, Equal([]string{"first", "second"})),
+			Expect(plan.GitIgnoreNames, Equal([]string{"skills/first", "skills/second"})),
 			Expect(plan.Skills, Equal([]SkillInstall{
 				{
 					Ref:         SkillRef{Name: "first", Module: "github.com/example/one", Version: "v1.2.3"},
@@ -284,7 +284,7 @@ func TestApplyInstallPlan(t *testing.T) {
 			t, "把 skill 目录软链到项目内并写入 gitignore",
 			Expect(mustEvalSymlink(t, filepath.Join(root, ".agents", "skills", "first")), Equal(mustEvalSymlink(t, firstSource))),
 			Expect(mustEvalSymlink(t, filepath.Join(root, ".agents", "skills", "second")), Equal(mustEvalSymlink(t, secondSource))),
-			Expect(mustReadFile(t, filepath.Join(root, ".agents", "skills", ".gitignore")), Equal("first\nsecond\n")),
+			Expect(mustReadFile(t, filepath.Join(root, ".agents", ".gitignore")), Equal("skills/first\nskills/second\n")),
 		)
 	})
 

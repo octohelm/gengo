@@ -17,8 +17,8 @@ import (
 	"github.com/octohelm/x/logr"
 	reflectx "github.com/octohelm/x/reflect"
 
+	"github.com/octohelm/gengo/pkg/gengo/internal/cache"
 	"github.com/octohelm/gengo/pkg/gengo/snippet"
-	"github.com/octohelm/gengo/pkg/sumfile"
 	gengotypes "github.com/octohelm/gengo/pkg/types"
 )
 
@@ -29,14 +29,31 @@ type Executor interface {
 
 // NewExecutor 加载配置的入口并返回一个执行器。
 func NewExecutor(args *GeneratorArgs) (Executor, error) {
-	u, err := gengotypes.Load(args.Entrypoint)
+	if os.Getenv("GENGO_NO_CACHE") == "1" {
+		args.NoCache = true
+	}
+
+	u, err := gengotypes.Load(args.Entrypoint, gengotypes.WithMode(gengotypes.LoadForHash))
 	if err != nil {
 		return nil, err
 	}
+
+	var genCache *cache.Cache
+	if args.CacheDir != "" {
+		genCache = cache.NewWithDir(args.CacheDir)
+	} else {
+		genCache, err = cache.New()
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	c := &gengoCtx{
-		universe: u,
-		args:     args,
-		l:        newLogger(),
+		universe:            u,
+		args:                args,
+		cache:               genCache,
+		pkgContentHashCache: map[string]string{},
+		l:                   newLogger(),
 	}
 	return c, nil
 }
@@ -96,8 +113,12 @@ type gengoCtx struct {
 	pkg     gengotypes.Package
 	genfile *genfile
 
-	ignore  bool
-	sumFile *sumfile.File
+	ignore bool
+	cache  *cache.Cache
+
+	pkgContentHashCache map[string]string
+
+	fullLoaded bool
 
 	defers []func(ctx Context) error
 
@@ -146,64 +167,65 @@ func (c *gengoCtx) Writer() SnippetWriter {
 	return c.genfile
 }
 
-func (c *gengoCtx) Execute(ctx corecontext.Context, generators ...Generator) error {
-	if c.args.All {
-		for pkgPath, direct := range c.universe.LocalPkgPaths() {
-			if direct {
-				mod := c.universe.Package(pkgPath).Module()
-				if mod != nil {
-					c.sumFile, _ = sumfile.Load(mod.Dir)
-				}
-				break
-			}
-		}
+func (c *gengoCtx) pkgContentHash(pkgPath string) string {
+	cacheKey := pkgPath + "\x00" + c.args.OutputFileBaseName
+	if h, ok := c.pkgContentHashCache[cacheKey]; ok {
+		return h
+	}
+	h := computePkgContentHash(c.universe, pkgPath, c.args.OutputFileBaseName)
+	c.pkgContentHashCache[cacheKey] = h
+	return h
+}
+
+// ensureFullUniverse 将轻量 Universe 升级为全量，仅在首次调用时执行。
+func (c *gengoCtx) ensureFullUniverse() error {
+	if c.fullLoaded {
+		return nil
 	}
 
+	u, err := gengotypes.Load(c.args.Entrypoint)
+	if err != nil {
+		return err
+	}
+	c.universe = u
+	c.pkgContentHashCache = map[string]string{}
+	c.fullLoaded = true
+	return nil
+}
+
+func (c *gengoCtx) Execute(ctx corecontext.Context, generators ...Generator) error {
 	for pkgPath, direct := range c.universe.LocalPkgPaths() {
-		if !c.args.All && !direct {
+		if !direct {
 			continue
 		}
 
-		if err := c.pkgExecute(logr.LoggerInjectContext(ctx, c.l), pkgPath, generators...); err != nil {
+		if err := c.pkgExecute(logr.WithLogger(ctx, c.l), pkgPath, generators...); err != nil {
 			return err
 		}
-	}
-
-	if c.args.All {
-		sumFile := c.universe.SumFile()
-
-		if c.sumFile != nil {
-			sumFile.Dir = c.sumFile.Dir
-		}
-
-		return sumFile.Save()
 	}
 
 	return nil
 }
 
-func (c *gengoCtx) pkgChanged(pkgPath string) bool {
-	if c.args.Force {
-		return true
-	}
-	previous := c.sumFile
-	current := c.universe.SumFile()
-	if previous == nil || current == nil {
-		return true
-	}
-	return previous.Sum(pkgPath) != current.Sum(pkgPath)
-}
-
 func (c *gengoCtx) pkgExecute(pctx corecontext.Context, pkg string, generators ...Generator) (finalErr error) {
-	if !c.pkgChanged(pkg) {
-		_, l := logr.FromContext(pctx).Start(pctx, "debug: generate", slog.String("scope", pkg), slog.Bool("cached", true))
-		defer l.End()
-
-		return finalErr
+	p := c.universe.Package(pkg)
+	if p == nil {
+		return fmt.Errorf("invalid pkg `%s`", pkg)
 	}
+
+	pkgContentHash := c.pkgContentHash(pkg)
+
+	// 先检测是否有需要执行的生成器
+	hasWork := false
 
 	ctx, l := logr.FromContext(pctx).Start(pctx, "generate", slog.String("scope", pkg))
-	defer l.End()
+	defer func() {
+		if hasWork {
+			l.End()
+		} else {
+			l.WithValues(slog.Bool("cached", true)).End()
+		}
+	}()
 
 	defer func() {
 		if finalErr != nil {
@@ -211,18 +233,32 @@ func (c *gengoCtx) pkgExecute(pctx corecontext.Context, pkg string, generators .
 		}
 	}()
 
-	p := c.universe.Package(pkg)
-	if p == nil {
-		return fmt.Errorf("invalid pkg `%s`", pkg)
+	for _, gen := range generators {
+		if c.args.NoCache || !c.cache.Exists(computeActionID(gen.Name(), generatorVersion(gen), pkgContentHash)) {
+			hasWork = true
+			break
+		}
 	}
+
+	if !hasWork {
+		return nil
+	}
+
+	// 升级到全量 Universe
+	if err := c.ensureFullUniverse(); err != nil {
+		return err
+	}
+	p = c.universe.Package(pkg)
 
 	generatedFiles := make(map[string]string)
 
 	pkgCtx := &gengoCtx{
-		universe: c.universe,
-		args:     c.args,
-		pkg:      p,
-		pkgTags:  map[string][]string{},
+		universe:            c.universe,
+		args:                c.args,
+		pkg:                 p,
+		pkgTags:             map[string][]string{},
+		cache:               c.cache,
+		pkgContentHashCache: c.pkgContentHashCache,
 	}
 
 	for _, f := range p.Files() {
@@ -243,12 +279,24 @@ func (c *gengoCtx) pkgExecute(pctx corecontext.Context, pkg string, generators .
 	gfs := sync.Map{}
 
 	for _, gen := range generators {
+		genName := gen.Name()
+		genVer := generatorVersion(gen)
+		actionID := computeActionID(genName, genVer, pkgContentHash)
+
+		// 检查缓存
+		if !c.args.NoCache && c.cache.Exists(actionID) {
+			delete(generatedFiles, newGenfile(genName).Filename(c.args))
+			continue
+		}
+
 		pkgCtxForGen := &gengoCtx{
-			args:     pkgCtx.args,
-			universe: pkgCtx.universe,
-			pkg:      pkgCtx.pkg,
-			pkgTags:  pkgCtx.pkgTags,
-			genfile:  newGenfile(gen.Name()),
+			args:                pkgCtx.args,
+			universe:            pkgCtx.universe,
+			pkg:                 pkgCtx.pkg,
+			pkgTags:             pkgCtx.pkgTags,
+			genfile:             newGenfile(genName),
+			cache:               pkgCtx.cache,
+			pkgContentHashCache: pkgCtx.pkgContentHashCache,
 		}
 
 		if err := pkgCtxForGen.genfile.InitWith(pkgCtxForGen); err != nil {
@@ -271,6 +319,11 @@ func (c *gengoCtx) pkgExecute(pctx corecontext.Context, pkg string, generators .
 
 		if !pkgCtxForGen.IsZero() {
 			gfs.Store(g.Name(), pkgCtxForGen.genfile)
+		}
+
+		// 写入缓存
+		if err := c.cache.Mark(actionID); err != nil {
+			l.Warn(fmt.Errorf("cache: mark failed: %w", err))
 		}
 	}
 

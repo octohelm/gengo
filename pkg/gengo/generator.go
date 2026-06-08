@@ -20,10 +20,10 @@ type GeneratorArgs struct {
 	Entrypoint []string
 	// OutputFileBaseName 是生成文件名的前缀。
 	OutputFileBaseName string
-	// All 为 true 时会处理所有依赖包。
-	All bool
-	// Force 为 true 时会忽略缓存并强制重新生成。
-	Force bool
+	// NoCache 为 true 时跳过缓存读取，但仍会写入缓存。
+	NoCache bool
+	// CacheDir 为缓存目录路径，为空则使用默认 $GOCACHE/gengo。
+	CacheDir string
 }
 
 // Generator 为执行器选中的命名类型生成代码。

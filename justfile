@@ -3,6 +3,4 @@
 default:
     @just --list --list-submodules
 
-# Go 工具链入口
-[group: 'toolchain']
 mod go 'tool/go'

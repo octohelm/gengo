@@ -4,6 +4,7 @@ go 1.26.2
 
 tool (
 	github.com/octohelm/gengo/tool/internal/cmd/fmt
+	github.com/octohelm/gengo/tool/internal/cmd/gen
 	github.com/octohelm/gengo/tool/internal/cmd/skills-install
 )
 

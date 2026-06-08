@@ -50,7 +50,7 @@ type Skipped interface {
 		return m.Generate(gengo.GeneratorArgs{
 			Entrypoint:         []string{m.ImportPath("sample")},
 			OutputFileBaseName: "zz_generated_test",
-			Force:              true,
+			NoCache:            true,
 		}, &deepcopyGen{})
 	})
 

@@ -37,7 +37,7 @@ type OriginPatch origin.Origin
 		return m.Generate(gengo.GeneratorArgs{
 			Entrypoint:         []string{m.ImportPath("sample")},
 			OutputFileBaseName: "zz_generated_test",
-			Force:              true,
+			NoCache:            true,
 		}, &partialStructGen{})
 	})
 
@@ -76,7 +76,7 @@ type Bad string
 				return m.GenerateError(gengo.GeneratorArgs{
 					Entrypoint:         []string{m.ImportPath("sample")},
 					OutputFileBaseName: "zz_generated_test",
-					Force:              true,
+					NoCache:            true,
 				}, &partialStructGen{})
 			}, ErrorMatch(regexp.MustCompile("must be struct type"))),
 		)
@@ -101,7 +101,7 @@ type Bad struct {
 				return m.GenerateError(gengo.GeneratorArgs{
 					Entrypoint:         []string{m.ImportPath("sample")},
 					OutputFileBaseName: "zz_generated_test",
-					Force:              true,
+					NoCache:            true,
 				}, &partialStructGen{})
 			}, ErrorMatch(regexp.MustCompile("need to define type"))),
 		)

@@ -116,110 +116,114 @@ func newPkg(pkg *packages.Package, u *Universe) Package {
 		}
 	}
 
-	for ident := range p.Package.TypesInfo.Defs {
-		switch x := p.Package.TypesInfo.Defs[ident].(type) {
-		case *types.Func:
-			s := x.Type().(*types.Signature)
+	if p.Package.TypesInfo != nil {
+		for ident := range p.Package.TypesInfo.Defs {
+			switch x := p.Package.TypesInfo.Defs[ident].(type) {
+			case *types.Func:
+				s := x.Type().(*types.Signature)
 
-			if r := s.Recv(); r != nil {
-				var named *types.Named
+				if r := s.Recv(); r != nil {
+					var named *types.Named
 
-				switch t := r.Type().(type) {
-				case *types.Pointer:
-					if n, ok := t.Elem().(*types.Named); ok {
-						named = n
+					switch t := r.Type().(type) {
+					case *types.Pointer:
+						if n, ok := t.Elem().(*types.Named); ok {
+							named = n
+						}
+					case *types.Named:
+						named = t
 					}
-				case *types.Named:
-					named = t
-				}
 
-				if named != nil {
-					p.methods[named] = append(p.methods[named], x)
+					if named != nil {
+						p.methods[named] = append(p.methods[named], x)
+					}
+				} else {
+					p.funcs[x.Name()] = x
 				}
-			} else {
-				p.funcs[x.Name()] = x
+			case *types.TypeName:
+				p.types[x.Name()] = x
+			case *types.Const:
+				p.constants[x.Name()] = x
 			}
-		case *types.TypeName:
-			p.types[x.Name()] = x
-		case *types.Const:
-			p.constants[x.Name()] = x
 		}
 	}
 
-	for i := range p.Package.Syntax {
-		f := p.Package.Syntax[i]
+	if p.Package.Syntax != nil && p.Package.TypesInfo != nil {
+		for i := range p.Package.Syntax {
+			f := p.Package.Syntax[i]
 
-		ast.Inspect(f, func(node ast.Node) bool {
-			switch x := node.(type) {
-			case *ast.FuncDecl:
-				fn := p.Package.TypesInfo.TypeOf(x.Name)
-				if fn != nil {
-					if s, ok := fn.(*types.Signature); ok {
-						if _, ok := p.signatures[s]; !ok {
-							p.signatures[s] = x
+			ast.Inspect(f, func(node ast.Node) bool {
+				switch x := node.(type) {
+				case *ast.FuncDecl:
+					fn := p.Package.TypesInfo.TypeOf(x.Name)
+					if fn != nil {
+						if s, ok := fn.(*types.Signature); ok {
+							if _, ok := p.signatures[s]; !ok {
+								p.signatures[s] = x
+							}
+						}
+						if f, ok := p.Package.TypesInfo.ObjectOf(x.Name).(*types.Func); ok {
+							p.funcDecls[f] = x
 						}
 					}
-					if f, ok := p.Package.TypesInfo.ObjectOf(x.Name).(*types.Func); ok {
-						p.funcDecls[f] = x
-					}
-				}
-			case *ast.FuncLit:
-				fn := p.Package.TypesInfo.TypeOf(x.Type)
-				if fn != nil {
-					if s, ok := fn.(*types.Signature); ok {
-						if _, ok := p.signatures[s]; !ok {
-							p.signatures[s] = x
+				case *ast.FuncLit:
+					fn := p.Package.TypesInfo.TypeOf(x.Type)
+					if fn != nil {
+						if s, ok := fn.(*types.Signature); ok {
+							if _, ok := p.signatures[s]; !ok {
+								p.signatures[s] = x
+							}
 						}
-					}
-					for _, o := range p.Package.TypesInfo.Defs {
-						if f, ok := o.(*types.Func); ok {
-							if f.Pos() == x.Pos() {
-								p.funcDecls[f] = x
+						for _, o := range p.Package.TypesInfo.Defs {
+							if f, ok := o.(*types.Func); ok {
+								if f.Pos() == x.Pos() {
+									p.funcDecls[f] = x
+								}
 							}
 						}
 					}
+				case *ast.CommentGroup:
+					collectCommentGroup(x, false, x.Pos())
+				case *ast.ValueSpec:
+					collectCommentGroup(x.Doc, false, x.Pos())
+					collectCommentGroup(x.Comment, true, x.Pos())
+				case *ast.ImportSpec:
+					collectCommentGroup(x.Doc, false, x.Pos())
+					collectCommentGroup(x.Comment, true, x.Pos())
+				case *ast.TypeSpec:
+					collectCommentGroup(x.Doc, false, x.Pos())
+					collectCommentGroup(x.Comment, true, x.Pos())
+				case *ast.Field:
+					collectCommentGroup(x.Doc, false, x.Pos())
+					collectCommentGroup(x.Comment, true, x.Pos())
 				}
-			case *ast.CommentGroup:
-				collectCommentGroup(x, false, x.Pos())
-			case *ast.ValueSpec:
-				collectCommentGroup(x.Doc, false, x.Pos())
-				collectCommentGroup(x.Comment, true, x.Pos())
-			case *ast.ImportSpec:
-				collectCommentGroup(x.Doc, false, x.Pos())
-				collectCommentGroup(x.Comment, true, x.Pos())
-			case *ast.TypeSpec:
-				collectCommentGroup(x.Doc, false, x.Pos())
-				collectCommentGroup(x.Comment, true, x.Pos())
-			case *ast.Field:
-				collectCommentGroup(x.Doc, false, x.Pos())
-				collectCommentGroup(x.Comment, true, x.Pos())
-			}
-			return true
-		})
-	}
+				return true
+			})
+		}
 
-	for i := range p.Package.Syntax {
-		ast.Inspect(p.Package.Syntax[i], func(node ast.Node) bool {
-			switch x := node.(type) {
-			case *ast.CallExpr:
-				fn := p.Package.TypesInfo.TypeOf(x.Fun)
-				if fn != nil {
-					if s, ok := fn.(*types.Signature); ok {
-						if n, ok := p.signatures[s]; ok {
-							switch n.(type) {
-							case *ast.FuncDecl, *ast.FuncLit:
-								// skip declared functions
-							default:
+		for i := range p.Package.Syntax {
+			ast.Inspect(p.Package.Syntax[i], func(node ast.Node) bool {
+				switch x := node.(type) {
+				case *ast.CallExpr:
+					fn := p.Package.TypesInfo.TypeOf(x.Fun)
+					if fn != nil {
+						if s, ok := fn.(*types.Signature); ok {
+							if n, ok := p.signatures[s]; ok {
+								switch n.(type) {
+								case *ast.FuncDecl, *ast.FuncLit:
+									// skip declared functions
+								default:
+									p.signatures[s] = x.Fun
+								}
+							} else {
 								p.signatures[s] = x.Fun
 							}
-						} else {
-							p.signatures[s] = x.Fun
 						}
 					}
 				}
-			}
-			return true
-		})
+				return true
+			})
+		}
 	}
 
 	return p

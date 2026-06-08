@@ -45,7 +45,6 @@ func TestPkgGenerator(t *testing.T) {
 				"github.com/octohelm/gengo/pkg/gengo/testdata/runtime/c",
 			},
 			OutputFileBaseName: outputBaseName,
-			All:                true,
 		})
 	})
 
