@@ -59,10 +59,7 @@ func mustCtxOnPackage(t *testing.T, entrypoint string) *gengoCtx {
 	})
 
 	c := executor.(*gengoCtx)
-	// 内部测试需要全量 Universe
-	Must(t, func() error {
-		return c.ensureFullUniverse()
-	})
+
 	c.pkg = c.universe.Package(entrypoint)
 	c.l = newLogger()
 

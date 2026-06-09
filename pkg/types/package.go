@@ -8,7 +8,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/octohelm/x/ptr"
 	"golang.org/x/tools/go/packages"
 )
 
@@ -73,157 +72,10 @@ func newPkg(pkg *packages.Package, u *Universe) Package {
 		Package: pkg,
 
 		imports: make(map[string]Package),
-
-		constants: make(map[string]*types.Const),
-		types:     make(map[string]*types.TypeName),
-		funcs:     make(map[string]*types.Func),
-		methods:   make(map[*types.Named][]*types.Func),
-
-		endLineToCommentGroup:         make(map[fileLine]*ast.CommentGroup),
-		endLineToTrailingCommentGroup: make(map[fileLine]*ast.CommentGroup),
-
-		funcDecls:  make(map[*types.Func]ast.Node),
-		signatures: make(map[*types.Signature]ast.Node),
 	}
 
 	for pkgPath := range pkg.Imports {
 		p.imports[pkgPath] = u.Package(pkgPath)
-	}
-
-	fileLineFor := func(pos token.Pos, deltaLine int) fileLine {
-		position := p.Package.Fset.Position(pos)
-		return fileLine{position.Filename, position.Line + deltaLine}
-	}
-
-	collectCommentGroup := func(c *ast.CommentGroup, isTrailing bool, stmtPos token.Pos) {
-		fl := fileLineFor(stmtPos, 0)
-
-		if c != nil && c.Pos() == stmtPos {
-			// stmt is CommentGroup
-			fl = fileLineFor(c.End(), 0)
-		} else if !isTrailing {
-			fl = fileLineFor(stmtPos, -1)
-		}
-
-		if isTrailing {
-			if cc := p.endLineToTrailingCommentGroup[fl]; cc == nil {
-				p.endLineToTrailingCommentGroup[fl] = c
-			}
-		} else {
-			if cc := p.endLineToCommentGroup[fl]; cc == nil {
-				p.endLineToCommentGroup[fl] = c
-			}
-		}
-	}
-
-	if p.Package.TypesInfo != nil {
-		for ident := range p.Package.TypesInfo.Defs {
-			switch x := p.Package.TypesInfo.Defs[ident].(type) {
-			case *types.Func:
-				s := x.Type().(*types.Signature)
-
-				if r := s.Recv(); r != nil {
-					var named *types.Named
-
-					switch t := r.Type().(type) {
-					case *types.Pointer:
-						if n, ok := t.Elem().(*types.Named); ok {
-							named = n
-						}
-					case *types.Named:
-						named = t
-					}
-
-					if named != nil {
-						p.methods[named] = append(p.methods[named], x)
-					}
-				} else {
-					p.funcs[x.Name()] = x
-				}
-			case *types.TypeName:
-				p.types[x.Name()] = x
-			case *types.Const:
-				p.constants[x.Name()] = x
-			}
-		}
-	}
-
-	if p.Package.Syntax != nil && p.Package.TypesInfo != nil {
-		for i := range p.Package.Syntax {
-			f := p.Package.Syntax[i]
-
-			ast.Inspect(f, func(node ast.Node) bool {
-				switch x := node.(type) {
-				case *ast.FuncDecl:
-					fn := p.Package.TypesInfo.TypeOf(x.Name)
-					if fn != nil {
-						if s, ok := fn.(*types.Signature); ok {
-							if _, ok := p.signatures[s]; !ok {
-								p.signatures[s] = x
-							}
-						}
-						if f, ok := p.Package.TypesInfo.ObjectOf(x.Name).(*types.Func); ok {
-							p.funcDecls[f] = x
-						}
-					}
-				case *ast.FuncLit:
-					fn := p.Package.TypesInfo.TypeOf(x.Type)
-					if fn != nil {
-						if s, ok := fn.(*types.Signature); ok {
-							if _, ok := p.signatures[s]; !ok {
-								p.signatures[s] = x
-							}
-						}
-						for _, o := range p.Package.TypesInfo.Defs {
-							if f, ok := o.(*types.Func); ok {
-								if f.Pos() == x.Pos() {
-									p.funcDecls[f] = x
-								}
-							}
-						}
-					}
-				case *ast.CommentGroup:
-					collectCommentGroup(x, false, x.Pos())
-				case *ast.ValueSpec:
-					collectCommentGroup(x.Doc, false, x.Pos())
-					collectCommentGroup(x.Comment, true, x.Pos())
-				case *ast.ImportSpec:
-					collectCommentGroup(x.Doc, false, x.Pos())
-					collectCommentGroup(x.Comment, true, x.Pos())
-				case *ast.TypeSpec:
-					collectCommentGroup(x.Doc, false, x.Pos())
-					collectCommentGroup(x.Comment, true, x.Pos())
-				case *ast.Field:
-					collectCommentGroup(x.Doc, false, x.Pos())
-					collectCommentGroup(x.Comment, true, x.Pos())
-				}
-				return true
-			})
-		}
-
-		for i := range p.Package.Syntax {
-			ast.Inspect(p.Package.Syntax[i], func(node ast.Node) bool {
-				switch x := node.(type) {
-				case *ast.CallExpr:
-					fn := p.Package.TypesInfo.TypeOf(x.Fun)
-					if fn != nil {
-						if s, ok := fn.(*types.Signature); ok {
-							if n, ok := p.signatures[s]; ok {
-								switch n.(type) {
-								case *ast.FuncDecl, *ast.FuncLit:
-									// skip declared functions
-								default:
-									p.signatures[s] = x.Fun
-								}
-							} else {
-								p.signatures[s] = x.Fun
-							}
-						}
-					}
-				}
-				return true
-			})
-		}
 	}
 
 	return p
@@ -235,16 +87,18 @@ type pkgInfo struct {
 
 	imports map[string]Package
 
-	constants map[string]*types.Const
-	types     map[string]*types.TypeName
-	funcs     map[string]*types.Func
-	methods   map[*types.Named][]*types.Func
+	collectDefsOnce sync.Once
+	constants       map[string]*types.Const
+	types           map[string]*types.TypeName
+	funcs           map[string]*types.Func
+	methods         map[*types.Named][]*types.Func
+
+	collectASTOnce sync.Once
 
 	endLineToCommentGroup         map[fileLine]*ast.CommentGroup
 	endLineToTrailingCommentGroup map[fileLine]*ast.CommentGroup
-
-	funcDecls  map[*types.Func]ast.Node
-	signatures map[*types.Signature]ast.Node
+	funcDecls                     map[*types.Func]ast.Node
+	signatures                    map[*types.Signature]ast.Node
 
 	sourceDir   *string
 	funcResults sync.Map
@@ -268,9 +122,149 @@ func (p *pkgInfo) SourceDir() string {
 		return filepath.Join(p.Module().Dir, p.Package.PkgPath[len(p.Module().Path):])
 	}()
 
-	p.sourceDir = ptr.Ptr(sourceDir)
+	p.sourceDir = &sourceDir
 
 	return sourceDir
+}
+
+// needDefs 按需遍历 TypesInfo.Defs，填充 constants、types、funcs、methods 映射。
+func (p *pkgInfo) needDefs() {
+	p.collectDefsOnce.Do(func() {
+		p.constants = make(map[string]*types.Const)
+		p.types = make(map[string]*types.TypeName)
+		p.funcs = make(map[string]*types.Func)
+		p.methods = make(map[*types.Named][]*types.Func)
+
+		if p.Package.TypesInfo != nil {
+			for ident := range p.Package.TypesInfo.Defs {
+				switch x := p.Package.TypesInfo.Defs[ident].(type) {
+				case *types.Func:
+					s := x.Type().(*types.Signature)
+
+					if r := s.Recv(); r != nil {
+						var named *types.Named
+
+						switch t := r.Type().(type) {
+						case *types.Pointer:
+							if n, ok := t.Elem().(*types.Named); ok {
+								named = n
+							}
+						case *types.Named:
+							named = t
+						}
+
+						if named != nil {
+							p.methods[named] = append(p.methods[named], x)
+						}
+					} else {
+						p.funcs[x.Name()] = x
+					}
+				case *types.TypeName:
+					p.types[x.Name()] = x
+				case *types.Const:
+					p.constants[x.Name()] = x
+				}
+			}
+		}
+	})
+}
+
+// needAST 按需遍历 AST，填充 funcDecls、signatures 和注释映射。
+func (p *pkgInfo) needAST() {
+	p.collectASTOnce.Do(func() {
+		p.funcDecls = make(map[*types.Func]ast.Node)
+		p.signatures = make(map[*types.Signature]ast.Node)
+		p.endLineToCommentGroup = make(map[fileLine]*ast.CommentGroup)
+		p.endLineToTrailingCommentGroup = make(map[fileLine]*ast.CommentGroup)
+
+		fileLineFor := func(pos token.Pos, deltaLine int) fileLine {
+			position := p.Package.Fset.Position(pos)
+			return fileLine{position.Filename, position.Line + deltaLine}
+		}
+
+		collectCommentGroup := func(c *ast.CommentGroup, isTrailing bool, stmtPos token.Pos) {
+			fl := fileLineFor(stmtPos, 0)
+
+			if c != nil && c.Pos() == stmtPos {
+				// stmt is CommentGroup
+				fl = fileLineFor(c.End(), 0)
+			} else if !isTrailing {
+				fl = fileLineFor(stmtPos, -1)
+			}
+
+			if isTrailing {
+				if cc := p.endLineToTrailingCommentGroup[fl]; cc == nil {
+					p.endLineToTrailingCommentGroup[fl] = c
+				}
+			} else {
+				if cc := p.endLineToCommentGroup[fl]; cc == nil {
+					p.endLineToCommentGroup[fl] = c
+				}
+			}
+		}
+
+		if p.Package.Syntax != nil && p.Package.TypesInfo != nil {
+			for i := range p.Package.Syntax {
+				ast.Inspect(p.Package.Syntax[i], func(node ast.Node) bool {
+					switch x := node.(type) {
+					case *ast.FuncDecl:
+						// FuncDecl 优先级最高，直接覆盖以保证声明优先于调用引用
+						fn := p.Package.TypesInfo.TypeOf(x.Name)
+						if fn != nil {
+							if s, ok := fn.(*types.Signature); ok {
+								p.signatures[s] = x
+							}
+							if f, ok := p.Package.TypesInfo.ObjectOf(x.Name).(*types.Func); ok {
+								p.funcDecls[f] = x
+							}
+						}
+					case *ast.FuncLit:
+						// FuncLit 优先级次高，直接覆盖以保证声明优先于调用引用
+						// 匿名函数不会产生 *types.Func 对象（Defs 中为 *types.Var），
+						// 因此无需在此处建立 funcDecls 映射
+						fn := p.Package.TypesInfo.TypeOf(x.Type)
+						if fn != nil {
+							if s, ok := fn.(*types.Signature); ok {
+								p.signatures[s] = x
+							}
+						}
+					case *ast.CallExpr:
+						// 调用表达式的 Fun 作为 fallback：仅在未找到函数声明或匿名函数时记录
+						fn := p.Package.TypesInfo.TypeOf(x.Fun)
+						if fn != nil {
+							if s, ok := fn.(*types.Signature); ok {
+								if n, ok := p.signatures[s]; ok {
+									switch n.(type) {
+									case *ast.FuncDecl, *ast.FuncLit:
+										// 声明优先，不覆盖
+									default:
+										p.signatures[s] = x.Fun
+									}
+								} else {
+									p.signatures[s] = x.Fun
+								}
+							}
+						}
+					case *ast.CommentGroup:
+						collectCommentGroup(x, false, x.Pos())
+					case *ast.ValueSpec:
+						collectCommentGroup(x.Doc, false, x.Pos())
+						collectCommentGroup(x.Comment, true, x.Pos())
+					case *ast.ImportSpec:
+						collectCommentGroup(x.Doc, false, x.Pos())
+						collectCommentGroup(x.Comment, true, x.Pos())
+					case *ast.TypeSpec:
+						collectCommentGroup(x.Doc, false, x.Pos())
+						collectCommentGroup(x.Comment, true, x.Pos())
+					case *ast.Field:
+						collectCommentGroup(x.Doc, false, x.Pos())
+						collectCommentGroup(x.Comment, true, x.Pos())
+					}
+					return true
+				})
+			}
+		}
+	})
 }
 
 func (p *pkgInfo) FileSet() *token.FileSet {
@@ -318,30 +312,37 @@ func (p *pkgInfo) Eval(expr ast.Expr) (types.TypeAndValue, error) {
 }
 
 func (p *pkgInfo) Constant(n string) *types.Const {
+	p.needDefs()
 	return p.constants[n]
 }
 
 func (p *pkgInfo) Constants() map[string]*types.Const {
+	p.needDefs()
 	return p.constants
 }
 
 func (p *pkgInfo) Type(n string) *types.TypeName {
+	p.needDefs()
 	return p.types[n]
 }
 
 func (p *pkgInfo) Types() map[string]*types.TypeName {
+	p.needDefs()
 	return p.types
 }
 
 func (p *pkgInfo) Function(n string) *types.Func {
+	p.needDefs()
 	return p.funcs[n]
 }
 
 func (p *pkgInfo) Functions() map[string]*types.Func {
+	p.needDefs()
 	return p.funcs
 }
 
 func (p *pkgInfo) MethodsOf(n *types.Named, ptr bool) []*types.Func {
+	p.needDefs()
 	funcs, _ := p.methods[n]
 
 	if ptr {
@@ -386,10 +387,12 @@ func (p *pkgInfo) File(pos token.Pos) *ast.File {
 }
 
 func (p *pkgInfo) Doc(pos token.Pos) (map[string][]string, []string) {
+	p.needAST()
 	return ExtractCommentTags(commentLinesFrom(p.priorCommentLines(pos, -1)))
 }
 
 func (p *pkgInfo) Comment(pos token.Pos) []string {
+	p.needAST()
 	return commentLinesFrom(p.priorCommentLines(pos, 0))
 }
 

@@ -45,17 +45,11 @@ lint path='./...' *args:
 run pkg *args:
     go run ./cmd/{{ pkg }} {{ args }}
 
-# 构建指定入口
-[group('build')]
-[no-cd]
-build pkg *args:
-    go build -o bin/{{ pkg }} ./cmd/{{ pkg }} {{ args }}
-
 # 代码生成（默认全部包）
 [group('build')]
 [no-cd]
 gen path='./...' *args:
-    go generate {{ args }} {{ path }}
+    go tool gen {{ path }} {{ args }}
 
 # 清理构建产物
 [group('env')]

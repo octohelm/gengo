@@ -22,8 +22,11 @@ const (
 	LoadSyntax = LoadTypes | packages.NeedSyntax | packages.NeedTypesInfo
 	// LoadAllSyntax 在 LoadSyntax 基础上额外加载依赖和模块元信息。
 	LoadAllSyntax = LoadSyntax | packages.NeedDeps | packages.NeedModule
+)
+
+const (
 	// LoadForHash 加载计算摘要所需的最小信息（不含类型与语法）。
-	LoadForHash = LoadImports | packages.NeedDeps | packages.NeedModule
+	LoadForHash = packages.NeedName | packages.NeedImports | packages.NeedDeps | packages.NeedModule
 )
 
 // WithDir 为 Load 设置 packages.Config.Dir。

@@ -8,6 +8,8 @@ import (
 )
 
 func (p *pkgInfo) ResultsOf(typeFunc *types.Func) (results FuncResults, n int) {
+	p.needAST()
+
 	s := typeFunc.Type().(*types.Signature)
 	r := p.funcResultsResolverFor(s)
 
@@ -77,6 +79,7 @@ func (r *funcResultsResolver) Results(vs visits) (finalFuncResults FuncResults) 
 
 				resolveInFunc := func() FuncResults {
 					p1 := r.u.Package(fn.Pkg().Path()).(*pkgInfo)
+					p1.needAST()
 
 					switch x := p1.funcDecls[fn].(type) {
 					case *ast.FuncDecl:
@@ -131,6 +134,7 @@ func (r *funcResultsResolver) resultsAt(vs visits, at int) iter.Seq[Result] {
 		case *ast.SelectorExpr:
 			if fn, ok := r.Package.TypesInfo.Uses[x.Sel].(*types.Func); ok {
 				p1 := r.u.Package(fn.Pkg().Path()).(*pkgInfo)
+				p1.needAST()
 
 				switch x := p1.funcDecls[fn].(type) {
 				case *ast.FuncDecl:
