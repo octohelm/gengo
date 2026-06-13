@@ -174,27 +174,84 @@ func (c *gengoCtx) Writer() SnippetWriter {
 }
 
 func (c *gengoCtx) pkgContentHash(pkgPath string) string {
-	cacheKey := pkgPath + "\x00" + c.args.OutputFileBaseName
-	if h, ok := c.pkgContentHashCache[cacheKey]; ok {
+	if h, ok := c.pkgContentHashCache[pkgPath]; ok {
 		return h
 	}
-	h := computePkgContentHash(c.universe, pkgPath, c.args.OutputFileBaseName)
-	c.pkgContentHashCache[cacheKey] = h
+	h := computePkgContentHash(c.universe, pkgPath)
+	c.pkgContentHashCache[pkgPath] = h
 	return h
 }
 
 func (c *gengoCtx) Execute(ctx corecontext.Context, generators ...Generator) error {
+	// 收集直接加载的本地包路径
+	var directPkgs []string
 	for pkgPath, direct := range c.universe.LocalPkgPaths() {
-		if !direct {
-			continue
+		if direct {
+			directPkgs = append(directPkgs, pkgPath)
 		}
+	}
 
+	// 按依赖关系排序，被依赖的先执行
+	for _, pkgPath := range c.sortByDeps(directPkgs) {
 		if err := c.pkgExecute(logr.WithLogger(ctx, c.l), pkgPath, generators...); err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+// sortByDeps 按依赖关系进行拓扑排序，被依赖的包排在前面先执行。
+// 例如 A imports B，则 B 先于 A 执行。
+func (c *gengoCtx) sortByDeps(pkgs []string) []string {
+	// 构建本地包集合用于快速判断
+	localSet := make(map[string]bool, len(pkgs))
+	for _, pkg := range pkgs {
+		localSet[pkg] = true
+	}
+
+	// 构建依赖图：pkg -> {它依赖的本地包}
+	depsOf := make(map[string]map[string]bool, len(pkgs))
+	for _, pkg := range pkgs {
+		p := c.universe.Package(pkg)
+		if p == nil {
+			continue
+		}
+		deps := make(map[string]bool)
+		for impPath := range p.Imports() {
+			if localSet[impPath] {
+				deps[impPath] = true
+			}
+		}
+		depsOf[pkg] = deps
+	}
+
+	visited := make(map[string]bool)
+	inStack := make(map[string]bool)
+	var sorted []string
+
+	var visit func(pkg string)
+	visit = func(pkg string) {
+		if visited[pkg] {
+			return
+		}
+		if inStack[pkg] {
+			return // 循环依赖，跳过
+		}
+		inStack[pkg] = true
+		for dep := range depsOf[pkg] {
+			visit(dep)
+		}
+		inStack[pkg] = false
+		visited[pkg] = true
+		sorted = append(sorted, pkg)
+	}
+
+	for _, pkg := range pkgs {
+		visit(pkg)
+	}
+
+	return sorted
 }
 
 func (c *gengoCtx) pkgExecute(pctx corecontext.Context, pkg string, generators ...Generator) (finalErr error) {

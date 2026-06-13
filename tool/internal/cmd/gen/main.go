@@ -8,9 +8,10 @@ import (
 	"github.com/octohelm/x/logr/slog"
 
 	"github.com/octohelm/gengo/pkg/gengo"
+)
 
+import (
 	_ "github.com/octohelm/gengo/devpkg/deepcopygen"
-
 	_ "github.com/octohelm/gengo/devpkg/runtimedocgen"
 )
 
