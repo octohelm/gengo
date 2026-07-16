@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"golang.org/x/tools/go/packages"
 
 	"github.com/octohelm/gengo/pkg/format/internal"
 )
@@ -40,104 +41,95 @@ func (p *Project) Init(ctx context.Context) error {
 	return nil
 }
 
-// Run 会遍历每个入口，格式化符合条件的 Go 文件，并按需回写到磁盘。
+// Run 通过 go/packages 加载每个入口对应的包，并格式化其中的 Go 文件。
+//
+// .go 文件会直接处理；其他入口（目录/包路径，支持 ... 递归）使用 packages.Load
+// 进行解析，与 go build / go fmt 的行为一致。
 func (p *Project) Run(ctx context.Context) error {
 	for _, entry := range p.Entrypoint {
-		root, recursive := p.resolveEntrypoint(entry)
-		if !withinRoot(p.projectRoot, root) {
-			return fmt.Errorf("入口 %q 超出项目根目录 %q", root, p.projectRoot)
+		// 单个 .go 文件：直接处理，不作为 package pattern 传入
+		if strings.HasSuffix(entry, ".go") {
+			path := p.resolveFileEntry(entry)
+			if !withinRoot(p.projectRoot, path) {
+				return fmt.Errorf("入口 %q 超出项目根目录 %q", path, p.projectRoot)
+			}
+			if err := p.processFile(path); err != nil {
+				return err
+			}
+			continue
 		}
 
-		if err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
-			return p.walkEntrypoint(root, recursive, path, d, err)
-		}); err != nil {
+		c := &packages.Config{
+			Mode: packages.NeedFiles,
+			Dir:  p.cwd,
+		}
+		pkgs, err := packages.Load(c, entry)
+		if err != nil {
 			return err
+		}
+
+		for _, pkg := range pkgs {
+			if len(pkg.Errors) > 0 {
+				for _, e := range pkg.Errors {
+					fmt.Fprintln(os.Stderr, "[warning]", e.Pos, e.Msg)
+				}
+			}
+			for _, filename := range pkg.GoFiles {
+				if err := p.processFile(filename); err != nil {
+					return err
+				}
+			}
 		}
 	}
 
 	return nil
 }
 
-func (p *Project) resolveEntrypoint(entry string) (string, bool) {
-	recursive := false
-
-	switch {
-	case entry == "...":
-		entry = "."
-		recursive = true
-	case strings.HasSuffix(entry, string(filepath.Separator)+"..."):
-		entry = strings.TrimSuffix(entry, string(filepath.Separator)+"...")
-		recursive = true
-	case strings.HasSuffix(entry, "/..."):
-		entry = strings.TrimSuffix(entry, "/...")
-		recursive = true
-	}
-
-	if entry == "" {
-		entry = "."
-	}
-
+// resolveFileEntry 将 .go 文件入口转为绝对路径。
+func (p *Project) resolveFileEntry(entry string) string {
 	entry = filepath.Clean(entry)
 	if !filepath.IsAbs(entry) {
 		entry = filepath.Join(p.cwd, entry)
 	}
-
-	return entry, recursive
+	return entry
 }
 
-func (p *Project) walkEntrypoint(entry string, recursive bool, path string, d fs.DirEntry, err error) error {
-	explicit := path == entry
-
-	switch {
-	case err != nil:
-		return err
-	case d.IsDir():
-		if !explicit && shouldIgnore(path) {
-			return filepath.SkipDir
-		}
-		if !recursive && explicit {
-			return nil
-		}
-		// simply recurse into directories
-		return nil
-	case explicit:
-		// non-directories given as explicit arguments are always formatted
-	case !isGoFilename(d.Name()):
-		return nil // skip walked non-Go files
+// processFile 对单个 Go 文件执行格式化，并按 List / Write 输出或回写。
+func (p *Project) processFile(filename string) error {
+	if !withinRoot(p.projectRoot, filename) {
+		return fmt.Errorf("路径 %q 超出项目根目录 %q", filename, p.projectRoot)
 	}
 
-	info, err := d.Info()
+	// 检查软链接目标是否超出项目根目录
+	fi, err := os.Lstat(filename)
 	if err != nil {
 		return err
 	}
-	if !withinRoot(p.projectRoot, path) {
-		return fmt.Errorf("路径 %q 超出项目根目录 %q", path, p.projectRoot)
-	}
-	if d.Type()&fs.ModeSymlink != 0 {
-		realPath, err := filepath.EvalSymlinks(path)
+	if fi.Mode()&os.ModeSymlink != 0 {
+		realPath, err := filepath.EvalSymlinks(filename)
 		if err != nil {
 			return err
 		}
 		if !withinRoot(p.projectRoot, realPath) {
-			return fmt.Errorf("路径 %q 的软链接目标超出项目根目录 %q", path, p.projectRoot)
+			return fmt.Errorf("路径 %q 的软链接目标超出项目根目录 %q", filename, p.projectRoot)
+		}
+		fi, err = os.Stat(filename)
+		if err != nil {
+			return err
 		}
 	}
-	if fileWeight(path, info) == exclusive {
+
+	if !fi.Mode().IsRegular() {
 		return nil
 	}
 
-	return p.process(path, info)
-}
-
-func (p *Project) process(path string, info os.FileInfo) error {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(filename)
 	if err != nil {
 		return err
 	}
 
 	opt := Options{}
-
-	module := internal.LoadModule(filepath.Dir(path))
+	module := internal.LoadModule(filepath.Dir(filename))
 	if module != nil {
 		opt = OptionsFromModFile(module.File)
 	}
@@ -149,90 +141,15 @@ func (p *Project) process(path string, info os.FileInfo) error {
 
 	if !bytes.Equal(data, formated) {
 		if p.List {
-			relPath, _ := filepath.Rel(p.cwd, path)
+			relPath, _ := filepath.Rel(p.cwd, filename)
 			fmt.Println(relPath)
 		}
 		if p.Write {
-			return os.WriteFile(path, formated, info.Mode())
+			return os.WriteFile(filename, formated, fi.Mode())
 		}
 	}
 
 	return nil
-}
-
-const exclusive = -1
-
-func fileWeight(path string, info fs.FileInfo) int64 {
-	if info == nil {
-		return exclusive
-	}
-	if info.Mode().Type() == fs.ModeSymlink {
-		var err error
-		info, err = os.Stat(path)
-		if err != nil {
-			return exclusive
-		}
-	}
-	if !info.Mode().IsRegular() {
-		// For non-regular files, FileInfo.Size is system-dependent and thus not a
-		// reliable indicator of weight.
-		return exclusive
-	}
-	return info.Size()
-}
-
-func shouldIgnore(path string) bool {
-	switch filepath.Base(path) {
-	case "vendor", "testdata":
-		return true
-	}
-	path, err := filepath.Abs(path)
-	if err != nil {
-		return false // unclear how this could happen; don't ignore in any case
-	}
-	m := internal.LoadModule(path)
-	if m == nil {
-		// no module file to declare ignore paths
-		return false
-	}
-	relPath, err := filepath.Rel(m.Dir, path)
-	if err != nil {
-		return false // unclear how this could happen; don't ignore in any case
-	}
-	relPath = normalizePath(relPath)
-	for _, ignore := range m.File.Ignore {
-		if matchIgnore(ignore.Path, relPath) {
-			return true
-		}
-	}
-	return false
-}
-
-func isGoFilename(name string) bool {
-	return !strings.HasPrefix(name, ".") && strings.HasSuffix(name, ".go")
-}
-
-func normalizePath(path string) string {
-	path = filepath.ToSlash(path) // ensure Windows support
-	if !strings.HasPrefix(path, "/") {
-		path = "/" + path
-	}
-	if !strings.HasSuffix(path, "/") {
-		path += "/"
-	}
-	return path
-}
-
-func matchIgnore(ignore, relPath string) bool {
-	ignore, rooted := strings.CutPrefix(ignore, "./")
-	ignore = normalizePath(ignore)
-	// Note that we only match the directory to be ignored itself,
-	// and not any directories underneath it.
-	// This way, using `gofumpt -w ignored` allows `ignored/subdir` to be formatted.
-	if rooted {
-		return relPath == ignore
-	}
-	return strings.HasSuffix(relPath, ignore)
 }
 
 func withinRoot(root string, path string) bool {
