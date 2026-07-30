@@ -456,6 +456,219 @@ replace github.com/example/one => ./local/one
 	})
 }
 
+func TestParseGoWorkUseDirs(t *testing.T) {
+	t.Parallel()
+
+	t.Run("go.work 不存在时返回空而非错误", func(t *testing.T) {
+		dirs := MustValue(t, func() ([]string, error) {
+			return ParseGoWorkUseDirs(filepath.Join(t.TempDir(), "go.work"))
+		})
+		Then(t, "空切片", Expect(dirs, Be(cmp.Len[[]string](0))))
+	})
+
+	t.Run("解析 go.work 中的 use 目录", func(t *testing.T) {
+		root := t.TempDir()
+
+		Must(t, func() error {
+			return os.WriteFile(filepath.Join(root, "go.work"), []byte(`go 1.22
+
+use (
+	./sub/a
+	./sub/b
+)
+`), 0o644)
+		})
+
+		dirs := MustValue(t, func() ([]string, error) {
+			return ParseGoWorkUseDirs(filepath.Join(root, "go.work"))
+		})
+
+		Then(t, "返回绝对路径的 use 目录",
+			Expect(dirs, Be(cmp.Len[[]string](2))),
+			Expect(dirs[0], Equal(filepath.Join(root, "sub", "a"))),
+			Expect(dirs[1], Equal(filepath.Join(root, "sub", "b"))),
+		)
+	})
+
+	t.Run("单行 use 形式", func(t *testing.T) {
+		root := t.TempDir()
+
+		Must(t, func() error {
+			return os.WriteFile(filepath.Join(root, "go.work"), []byte(`go 1.22
+
+use ./single
+`), 0o644)
+		})
+
+		dirs := MustValue(t, func() ([]string, error) {
+			return ParseGoWorkUseDirs(filepath.Join(root, "go.work"))
+		})
+
+		Then(t, "单行 use 也能正确解析",
+			Expect(dirs, Be(cmp.Len[[]string](1))),
+			Expect(dirs[0], Equal(filepath.Join(root, "single"))),
+		)
+	})
+}
+
+func TestInstallerPlanWithGoWork(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	modCache := t.TempDir()
+
+	// 根 go.mod — 不含 skill
+	Must(t, func() error {
+		return os.WriteFile(filepath.Join(root, "go.mod"), []byte(`module github.com/example/workspace
+`), 0o644)
+	})
+
+	// go.work — 指向两个子模块
+	Must(t, func() error {
+		return os.WriteFile(filepath.Join(root, "go.work"), []byte(`go 1.22
+
+use (
+	./pkg/a
+	./pkg/b
+)
+`), 0o644)
+	})
+
+	// 子模块 a 的 go.mod — 引用 skill:first
+	subA := filepath.Join(root, "pkg", "a")
+	Must(t, func() error { return os.MkdirAll(subA, 0o755) })
+	Must(t, func() error {
+		return os.WriteFile(filepath.Join(subA, "go.mod"), []byte(`module github.com/example/a
+
+require (
+	// +skill:first
+	github.com/example/one v1.2.3
+)
+`), 0o644)
+	})
+
+	// 子模块 b 的 go.mod — 引用 skill:second
+	subB := filepath.Join(root, "pkg", "b")
+	Must(t, func() error { return os.MkdirAll(subB, 0o755) })
+	Must(t, func() error {
+		return os.WriteFile(filepath.Join(subB, "go.mod"), []byte(`module github.com/example/b
+
+require (
+	// +skill:second
+	github.com/example/two v1.2.4
+)
+`), 0o644)
+	})
+
+	// 在 module cache 中创建对应的 skill 目录
+	firstSource := mustCreateCachedSkill(t, modCache, SkillRef{
+		Name:    "first",
+		Module:  "github.com/example/one",
+		Version: "v1.2.3",
+	})
+	secondSource := mustCreateCachedSkill(t, modCache, SkillRef{
+		Name:    "second",
+		Module:  "github.com/example/two",
+		Version: "v1.2.4",
+	})
+
+	installer := &Installer{
+		ProjectRoot: root,
+		GoModCache:  modCache,
+	}
+
+	plan := MustValue(t, func() (*InstallPlan, error) {
+		return installer.Plan(context.Background())
+	})
+
+	Then(t, "合并了所有子模块的 skill 引用",
+		Expect(plan.Skills, Be(cmp.Len[[]SkillInstall](2))),
+	)
+
+	Then(t, "安装到项目根目录的 .agents/skills/",
+		Expect(plan.Skills[0].Destination, Equal(filepath.Join(root, ".agents", "skills", "first"))),
+		Expect(plan.Skills[1].Destination, Equal(filepath.Join(root, ".agents", "skills", "second"))),
+		Expect(plan.Skills[0].Source, Equal(firstSource)),
+		Expect(plan.Skills[1].Source, Equal(secondSource)),
+	)
+
+	Must(t, func() error { return installer.Install(context.Background()) })
+
+	Then(t, "执行安装后创建了软链",
+		Expect(mustEvalSymlink(t, filepath.Join(root, ".agents", "skills", "first")), Equal(mustEvalSymlink(t, firstSource))),
+		Expect(mustEvalSymlink(t, filepath.Join(root, ".agents", "skills", "second")), Equal(mustEvalSymlink(t, secondSource))),
+	)
+}
+
+func TestInstallerPlanWithGoWork_Dedup(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	modCache := t.TempDir()
+
+	// 根 go.mod — 不含 skill
+	Must(t, func() error {
+		return os.WriteFile(filepath.Join(root, "go.mod"), []byte(`module github.com/example/workspace
+`), 0o644)
+	})
+
+	Must(t, func() error {
+		return os.WriteFile(filepath.Join(root, "go.work"), []byte(`go 1.22
+
+use (
+	./pkg/a
+	./pkg/b
+)
+`), 0o644)
+	})
+
+	// 两个子模块都引用同名 skill:first
+	subA := filepath.Join(root, "pkg", "a")
+	Must(t, func() error { return os.MkdirAll(subA, 0o755) })
+	Must(t, func() error {
+		return os.WriteFile(filepath.Join(subA, "go.mod"), []byte(`module github.com/example/a
+
+require (
+	// +skill:first
+	github.com/example/one v1.2.3
+)
+`), 0o644)
+	})
+
+	subB := filepath.Join(root, "pkg", "b")
+	Must(t, func() error { return os.MkdirAll(subB, 0o755) })
+	Must(t, func() error {
+		return os.WriteFile(filepath.Join(subB, "go.mod"), []byte(`module github.com/example/b
+
+require (
+	// +skill:first
+	github.com/example/one v1.2.3
+)
+`), 0o644)
+	})
+
+	source := mustCreateCachedSkill(t, modCache, SkillRef{
+		Name:    "first",
+		Module:  "github.com/example/one",
+		Version: "v1.2.3",
+	})
+
+	installer := &Installer{
+		ProjectRoot: root,
+		GoModCache:  modCache,
+	}
+
+	plan := MustValue(t, func() (*InstallPlan, error) {
+		return installer.Plan(context.Background())
+	})
+
+	Then(t, "同名 skill 只保留一个引用",
+		Expect(plan.Skills, Be(cmp.Len[[]SkillInstall](1))),
+		Expect(plan.Skills[0].Ref.Name, Equal("first")),
+		Expect(plan.Skills[0].Source, Equal(source)),
+	)
+}
+
 func mustCreateCachedSkill(t *testing.T, modCache string, skill SkillRef) string {
 	t.Helper()
 

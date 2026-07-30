@@ -1,6 +1,6 @@
 module github.com/octohelm/gengo
 
-go 1.26.2
+go 1.26.5
 
 tool (
 	github.com/octohelm/gengo/tool/internal/cmd/fmt
@@ -14,14 +14,14 @@ tool (
 require github.com/octohelm/x v0.0.0-20260508104609-6b72a870e0d2
 
 require (
-	golang.org/x/mod v0.37.0
-	golang.org/x/text v0.38.0
-	golang.org/x/tools v0.46.0
-	mvdan.cc/gofumpt v0.10.0
+	golang.org/x/mod v0.38.0
+	golang.org/x/text v0.40.0
+	golang.org/x/tools v0.48.0
+	mvdan.cc/gofumpt v0.11.0
 )
 
 require (
 	github.com/go-json-experiment/json v0.0.0-20260214004413-d219187c3433 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
-	golang.org/x/sync v0.21.0 // indirect
+	golang.org/x/sync v0.22.0 // indirect
 )

@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 
+	"golang.org/x/mod/modfile"
 	"golang.org/x/mod/module"
 )
 
@@ -64,6 +65,24 @@ func (i *Installer) Plan(ctx context.Context) (*InstallPlan, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// 当项目根目录存在 go.work 时，额外读取 use 子目录下的 go.mod 中的 skill 引用
+	goWorkPath := filepath.Join(projectRoot, "go.work")
+	useDirs, err := ParseGoWorkUseDirs(goWorkPath)
+	if err != nil {
+		return nil, err
+	}
+	for _, useDir := range useDirs {
+		subGoMod := filepath.Join(useDir, "go.mod")
+		subSkills, err := ParseGoModSkillsFile(subGoMod)
+		if err != nil {
+			return nil, fmt.Errorf("parse skills from use module %q: %w", subGoMod, err)
+		}
+		skills = append(skills, subSkills...)
+	}
+
+	// 按 Name 去重，同名 skill 保留首次出现的引用（根 go.mod 优先于子模块，先 use 优先于后 use）
+	skills = dedupSkillsByName(skills)
 
 	goModCache, err := i.goModCache(ctx)
 	if err != nil {
@@ -190,6 +209,34 @@ func ParseGoModSkillsFile(path string) ([]SkillRef, error) {
 	return skills, nil
 }
 
+// ParseGoWorkUseDirs 解析 go.work 文件，返回 use 指令指向的子目录路径（目录相对于 go.work 所在的 projectRoot 解析为绝对路径）。
+// 如果 go.work 不存在或无法读取，返回 nil 而非错误。
+func ParseGoWorkUseDirs(goWorkPath string) ([]string, error) {
+	data, err := os.ReadFile(goWorkPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("read go.work: %w", err)
+	}
+
+	wf, err := modfile.ParseWork(goWorkPath, data, nil)
+	if err != nil {
+		return nil, fmt.Errorf("parse go.work: %w", err)
+	}
+
+	goWorkDir := filepath.Dir(goWorkPath)
+	dirs := make([]string, 0, len(wf.Use))
+	for _, use := range wf.Use {
+		dir := use.Path
+		if !filepath.IsAbs(dir) {
+			dir = filepath.Join(goWorkDir, dir)
+		}
+		dirs = append(dirs, dir)
+	}
+	return dirs, nil
+}
+
 func ParseGoModSkills(data []byte) ([]SkillRef, error) {
 	var out []SkillRef
 
@@ -252,6 +299,20 @@ func ParseGoModSkills(data []byte) ([]SkillRef, error) {
 	}
 
 	return out, nil
+}
+
+// dedupSkillsByName 按 Name 去重，同名 skill 保留首次出现的引用。
+func dedupSkillsByName(skills []SkillRef) []SkillRef {
+	seen := make(map[string]struct{}, len(skills))
+	dedup := make([]SkillRef, 0, len(skills))
+	for _, s := range skills {
+		if _, ok := seen[s.Name]; ok {
+			continue
+		}
+		seen[s.Name] = struct{}{}
+		dedup = append(dedup, s)
+	}
+	return dedup
 }
 
 type replaceEntry struct {
